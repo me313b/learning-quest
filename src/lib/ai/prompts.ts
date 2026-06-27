@@ -1,0 +1,404 @@
+// Prompt builders for the AI layer. Kept separate from the transport so the
+// wording is easy to tune. The goals: short, rigorous questions that rotate
+// across real skill areas; themes that only *sometimes* nod to the child's
+// interests; kind-but-honest marking; and a genuinely specific parent note.
+
+import { DIFFICULTY_BANDS, SKILL_AREAS, SUBJECTS } from "../config";
+import type { ChildProfile, Question } from "../types";
+
+export const QGEN_SYSTEM =
+  "You are a world-class tutor and assessment designer for bright young " +
+  "children. You write ONE short question at a time. Questions are rigorous and " +
+  "make the child think, never busywork, and pitched precisely to the band " +
+  "requested. Keep the wording SHORT and plain: one or two sentences, simple " +
+  "words a 6–7 year old reads easily, no long stories. Vary the everyday " +
+  "context; do not theme every question around the same thing. You output " +
+  "STRICT JSON and nothing else: no prose, no code fences.";
+
+export function buildQuestionUser(
+  subject: string,
+  profile: ChildProfile,
+  difficulty: number,
+  recentTopics: string[],
+  targetSkills: string[],
+  coveredThisWeek: string[] = [],
+  language: "en" | "fr" = "en",
+  reasoning = false,
+): string {
+  const meta = SUBJECTS[subject];
+  const band = DIFFICULTY_BANDS[Math.round(difficulty)] ?? "";
+  const recent = recentTopics.length ? recentTopics.join(", ") : "none yet";
+  const focus = targetSkills.filter(Boolean).join(", ");
+  const areas = (SKILL_AREAS[subject] || []).join(", ");
+  const covered = coveredThisWeek.filter(Boolean);
+  const likes = (profile.interests_text || "").trim();
+
+  const typeRules: Record<string, string> = {
+    objective: '"type" must be "numeric" or "multiple_choice".',
+    subjective:
+      '"type" must be "short_text" (the child writes a word, phrase or short ' +
+      "sentence). For French you may ask for a translation, a word's meaning, " +
+      "or to write a tiny sentence.",
+    creative: '"type" must be "creative" (the child draws and uploads a photo).',
+  };
+
+  const focusLine = focus
+    ? `The child recently got these WRONG: ${focus}. Pick ONE of them, pitched a ` +
+      "touch easier so they can rebuild confidence."
+    : `Choose a skill area they have NOT seen recently. Areas to rotate through: ${areas}.`;
+
+  const coverageLine = covered.length
+    ? `Already practised THIS WEEK: ${covered.join(", ")}. Prefer a skill area NOT in that ` +
+      "list so the week covers a good spread (you may still revisit a weak skill above)."
+    : "";
+
+  // Theme: lean into a friendly Minecraft world (the child loves it), kept gentle
+  // and non-violent, while still varying the maths/skill underneath.
+  const themeLine = likes
+    ? `THEMING: give about two questions in three a friendly Minecraft flavour — mining diamonds and emeralds, ` +
+      "building with blocks, planting wheat, taming animals, filling chests, crafting tools, counting sheep/pigs/cows, " +
+      "trading with villagers. Keep it gentle and fun (no fighting or scary content). You may also reference " +
+      `what they like (${likes}). Mix in a plain everyday context now and then so it stays fresh. Vary the setting each time.`
+    : "THEMING: give about two questions in three a friendly Minecraft flavour — mining diamonds and emeralds, " +
+      "building with blocks, planting wheat, taming animals, filling chests, crafting tools, counting sheep/pigs/cows, " +
+      "trading with villagers. Keep it gentle and fun (no fighting or scary content). Mix in a plain everyday context " +
+      "now and then so it stays fresh. Vary the setting each time.";
+
+  const reasoningRule =
+    '"type" must be "short_text". Make it a REASONING question: ask the child to explain their ' +
+    'thinking, say WHY, or describe HOW they would work it out, in a short sentence (e.g. "Why ' +
+    'do you think...", "How would you...", "Explain how you know..."). It must need a written ' +
+    "explanation, not just a number. Mark generously: accept any answer showing sensible reasoning.";
+  const formatRule = reasoning ? reasoningRule : typeRules[meta.grading];
+
+  const langLine =
+    language === "fr"
+      ? "LANGUAGE: write the whole question (prompt AND any options) in SIMPLE French suitable for " +
+        "a 6-7 year old just starting French. Keep vocabulary basic and short. The 'hint' and " +
+        "'solution' may be in English so a grown-up can follow."
+      : "LANGUAGE: write the question in clear, simple English.";
+
+  const frenchAudio =
+    subject === "french"
+      ? `
+FRENCH AUDIO (required for this subject):
+- "displayText": the English instruction shown on screen (e.g. "Which word means cat?", "Listen and choose the meaning.").
+- "audioText": ONLY the French word, phrase or sentence that should be SPOKEN ALOUD (e.g. "chat", "J'ai un chat."). It must contain French only. NEVER put the English prompt or instruction in audioText.
+- "audioLanguage": always "fr-FR".
+- "listening": set true ONLY for a listen-first question where the child hears the French (audioText) and the options are the ENGLISH meanings; otherwise false. For a listening question, "displayText" should be something like "Listen and choose the meaning." and must not reveal the French in writing.
+- Set "prompt" equal to "displayText".`
+      : "";
+
+  return `Create one ${meta.label} question.
+
+CHILD: ${profile.name}, age ${profile.age}, school year ${profile.year}.
+DIFFICULTY: level ${difficulty}/10 -> ${band}
+${focusLine}
+${coverageLine}
+${themeLine}
+${langLine}${frenchAudio}
+Avoid these recently-used topics: ${recent}.
+
+CHALLENGE: make it need a little thinking — a small word problem, a two-step calculation, a
+comparison, or a "what comes next" — not a trivial one-liner. Keep it fair for the age and level.
+LENGTH: "prompt" can be one to three short sentences (a small scenario is good). Plain words.
+FORMAT: ${formatRule}
+
+Return JSON with EXACTLY these keys:
+{
+  "type": "...",
+  "topic": "short topic name (e.g. 'subtraction', 'colours')",
+  "skill": "the specific skill area being tested, lower-case (use one of the areas above)",
+  "difficulty": ${difficulty},
+  "prompt": "the question, clear for the age",
+  "displayText": "for French: the English instruction; otherwise same as prompt",
+  "audioText": "for French: ONLY the French to speak; otherwise empty string",
+  "audioLanguage": "fr-FR for French, otherwise empty string",
+  "listening": false,
+  "options": ["A","B","C","D"],
+  "answer": "the single correct answer (option text, or the number, or '' for creative)",
+  "acceptable": ["other acceptable answers if any"],
+  "tolerance": 0,
+  "hint": "a nudge that does NOT reveal the answer",
+  "solution": "a short, clear, encouraging explanation (one or two lines)"
+}
+No multiple-choice option may be obviously silly. "options" must be [] unless the type is multiple_choice.`;
+}
+
+export const GRADE_SYSTEM =
+  "You are a kind, encouraging tutor marking a very young child's answer. Be " +
+  "generous about effort and gentle, but honest about correctness. Keep every " +
+  "field short. You output STRICT JSON and nothing else.";
+
+export function buildGradeUser(
+  subject: string,
+  question: Question,
+  userAnswer: string,
+  profile: ChildProfile,
+): string {
+  const meta = SUBJECTS[subject];
+  return `Mark this ${meta.label} answer from a child age ${profile.age}.
+
+QUESTION: ${question.prompt}
+EXPECTED (guide, may be empty for open writing): ${question.answer}
+CHILD'S ANSWER: ${JSON.stringify(userAnswer)}
+
+Reply in JSON ONLY:
+{
+  "verdict": "correct" | "partial" | "incorrect",
+  "feedback": "one warm sentence a 6-year-old understands",
+  "correction": "the fixed or model answer, short",
+  "tip": "one specific thing to remember next time"
+}
+'partial' is a good attempt with a small slip. Keep it brief and kind.`;
+}
+
+export const ART_SYSTEM =
+  "You are a warm, fun art teacher cheering on a young child's drawing. Always " +
+  "be positive and specific about what you can actually see. Reply in STRICT " +
+  "JSON only.";
+
+export function buildArtUser(profile: ChildProfile): string {
+  const likes = (profile.interests_text || "").trim();
+  const ctx = likes ? ` They like ${likes}.` : "";
+  return (
+    `A child age ${profile.age} drew this.${ctx} ` +
+    'Reply in JSON: {"praise": "big cheerful reaction", ' +
+    '"noticed": "one specific lovely detail you can actually see", ' +
+    '"idea": "one gentle, fun idea to try next time"}'
+  );
+}
+
+export const REPORT_SYSTEM =
+  "You are an experienced, warm primary-school tutor writing a progress note to " +
+  "a parent. Be SPECIFIC and PRACTICAL, never generic. Name the exact skill " +
+  "areas to work on and give concrete, doable home activities with a tiny " +
+  "example for each. Use plain British English, short paragraphs, and a few " +
+  "clearly-labelled bullet points. No waffle, no inventing data.";
+
+export function buildReportUser(
+  profile: ChildProfile,
+  statsText: string,
+): string {
+  return `Write a progress note for the parent of ${profile.name} (age ${profile.age}, year ${profile.year}).
+
+Here is the data from their practice (accuracy, the difficulty they reach, and which specific skills they are strong or weak on):
+${statsText}
+
+Structure it EXACTLY like this, using the real data above:
+
+**The big picture** — 2–3 sentences: are they ahead/on-track, working hard, where is the momentum.
+
+**Going well** — 2–3 bullets naming specific skills they're strong on.
+
+**Focus next** — for EACH subject that needs work, one bullet that names the exact skill area (e.g. "Maths — subtraction across ten") AND a concrete 5-minute home activity with a tiny worked example (e.g. "count back from 23 to 17 on fingers"). Be specific to the data; do not give the same advice for every subject.
+
+**This week, try** — one or two small, realistic things to do at home.
+
+Keep it warm, honest and brief. If there isn't enough data on a subject yet, say so plainly rather than guessing.`;
+}
+
+// --------------------------------------------------------------------------- //
+// Marking a scanned paper worksheet (vision)
+// --------------------------------------------------------------------------- //
+export const WORKSHEET_MARK_SYSTEM =
+  "You are a kind teacher marking a photo of a child's completed paper " +
+  "worksheet. Read the child's handwritten answers from the image and compare " +
+  "each to the expected answer. Be gentle but honest. You output STRICT JSON " +
+  "and nothing else.";
+
+export interface WorksheetMarkItem {
+  n: number;
+  prompt: string;
+  expected: string;
+  type: string;
+  options?: string[];
+}
+
+export function buildWorksheetMarkUser(items: WorksheetMarkItem[]): string {
+  const lines = items
+    .map((it) => {
+      const opts = it.options && it.options.length ? ` Options: ${it.options.join(" / ")}.` : "";
+      return `${it.n}. ${it.prompt}${opts} (expected: ${it.expected || "open answer"})`;
+    })
+    .join("\n");
+
+  return `Here is a photo of a child's completed worksheet. The questions, in order, are:
+
+${lines}
+
+Read the child's answer for EACH numbered question from the photo. If a question's answer is blank or unreadable, mark it "incorrect" and set child_answer to "".
+
+Reply with JSON ONLY in this exact shape:
+{
+  "results": [
+    { "n": 1, "verdict": "correct" | "partial" | "incorrect", "child_answer": "what they wrote" }
+  ]
+}
+Include one entry per question, in order. 'partial' means close with a small slip.`;
+}
+
+// --------------------------------------------------------------------------- //
+// Interactive "lab" framing
+// --------------------------------------------------------------------------- //
+export const LAB_SYSTEM =
+  "You design tiny, playful science and learning experiments for a child aged " +
+  "6 to 7. You do NOT write code. You pick ONE of the interactive templates " +
+  "offered and write fresh, short, fun framing for it: a new everyday scenario, " +
+  "a one-line intro, a quick prediction question, and a fun fact. Keep all text " +
+  "very short and simple. You output STRICT JSON and nothing else.";
+
+export function buildLabUser(
+  subject: string,
+  templates: Record<string, string>,
+  recent: string[],
+): string {
+  const menu = Object.entries(templates)
+    .map(([k, desc]) => `- ${k}: ${desc}`)
+    .join("\n");
+  const avoid = recent.length ? recent.join(", ") : "none yet";
+
+  return `Design one ${subject} experiment for the child.
+
+Choose ONE template from this list (and write framing that matches how it actually works):
+${menu}
+
+Prefer a template the child has not seen recently. Recently shown: ${avoid}.
+
+Write a FRESH everyday scenario (playground, kitchen, park, sport, space, animals) and only sometimes a Minecraft one (about one time in three). Keep every piece of text short and simple for a 6-7 year old.
+
+Return JSON with EXACTLY these keys:
+{
+  "template": "one of the template names above",
+  "title": "a short, fun title (max 5 words)",
+  "intro": "one short sentence explaining the idea in kid words",
+  "predict": {
+    "question": "a quick guess question they can test by playing",
+    "options": ["three short options"],
+    "answer": 0,
+    "reveal": "one short sentence explaining the right answer"
+  },
+  "fact": "one short 'did you know' fact related to the experiment"
+}
+"answer" is the index (0, 1 or 2) of the correct option. The prediction must be answerable by playing with the chosen template.`;
+}
+
+// --------------------------------------------------------------------------- //
+// Fully generated interactive experiment (rendered in a sandboxed iframe)
+// --------------------------------------------------------------------------- //
+export const LAB_HTML_SYSTEM =
+  "You are a brilliant maker of tiny interactive learning toys for children " +
+  "aged 6 to 7. You write ONE self-contained interactive experiment as a single " +
+  "block of HTML + CSS + JavaScript (vanilla only, NO external libraries, NO " +
+  "network requests). It must be visual, colourful, playful and genuinely " +
+  "interactive (sliders, buttons, taps, drag, or an animated canvas/SVG). It " +
+  "teaches the given idea by letting the child DO something and see what " +
+  "happens. You output ONLY the markup, <style> and <script> — no markdown, no " +
+  "code fences, no <html>/<head>/<body> tags, no explanation before or after.";
+
+export function buildLabHtmlUser(subject: string, concept: string): string {
+  return `Make one interactive experiment for a child aged 6-7.
+
+SUBJECT: ${subject}
+IDEA TO EXPLORE: ${concept}
+
+Requirements:
+- Self-contained: only inline HTML, <style> and <script>. No imports, no fetch, no external URLs, no images.
+- Fits in a box about 440px tall and up to 640px wide. Use the full width. Avoid scrolling.
+- Use a <canvas> (or rich animated SVG) with a smooth requestAnimationFrame animation loop as the centrepiece. Things should MOVE: falling, bouncing, swinging, flowing, growing — real motion, not a static bar that just resizes.
+- Genuinely interactive: at least one control (slider/button/tap/drag) that visibly changes the animation in real time, plus a clear little goal or challenge ("Can you make the ball reach the flag?").
+- Make it polished and alive: bright colours, smooth easing, particles or trails where it fits, a gentle bounce or glow on success. Aim for something a child says "wow" at, not a plain form.
+- Child-friendly: big friendly text, very short words. A title at the top, one short instruction, and a short "what's happening" line that updates live as they play.
+- You MAY use the Web Audio API for gentle, optional sound effects (a soft beep, pop or note on interaction/success). Keep it subtle and never autoplay loudly.
+- Make each one feel DIFFERENT and surprising — vary the look, the controls and the scene. Never reuse a generic slider-and-coloured-bar layout.
+- Theme: a light Minecraft / adventure flavour is welcome but not required.
+- Style for a dark app: dark or transparent background, light text. Suggested colours: text #F4ECD8, accents #4AEDD9 (cyan), #7FB238 (green), #F8B617 (gold), #E03C28 (red).
+
+Output ONLY the HTML/CSS/JS for the experiment.`;
+}
+
+// --------------------------------------------------------------------------- //
+// French reading comprehension: a tiny story + listen + understand + answer
+// --------------------------------------------------------------------------- //
+export const READING_SYSTEM =
+  "You write tiny, gentle French reading passages for a 6-7 year old who is just " +
+  "starting to learn French. Vocabulary must be very basic and the grammar simple " +
+  "(mostly present tense, short sentences). You output STRICT JSON and nothing else.";
+
+// A spread of gentle themes so each new story feels different.
+export const READING_THEMES = [
+  "a cat and a dog who become friends",
+  "a sunny trip to the park",
+  "a birthday cake for grandma",
+  "a little bird learning to fly",
+  "a rainy day playing inside",
+  "the walk to school",
+  "a family dinner with soup",
+  "building a snowman in winter",
+  "a garden full of vegetables",
+  "a day at the beach making castles",
+  "a lost teddy bear that is found",
+  "a busy market with lots of fruit",
+  "playing football with friends",
+  "a sleepy farm early in the morning",
+  "a friendly fox in the forest",
+  "a boat trip on the river",
+  "a kitten who hides in a box",
+  "baking bread with papa",
+];
+
+export function pickReadingTheme(): string {
+  return READING_THEMES[Math.floor(Math.random() * READING_THEMES.length)];
+}
+
+export function buildReadingUser(theme = "", level = 2): string {
+  const chosen = theme || pickReadingTheme();
+  const lv = Math.max(1, Math.min(5, Math.round(level)));
+  const levelLine =
+    lv <= 1
+      ? "LEVEL 1 (very beginner): 3 to 4 very short sentences. Only the most common words."
+      : lv === 2
+        ? "LEVEL 2 (beginner): about 5 short sentences with very common words."
+        : lv === 3
+          ? "LEVEL 3 (a bit harder): about 6 to 7 sentences. A few slightly less common words, still simple."
+          : lv === 4
+            ? "LEVEL 4 (growing): about 7 to 8 sentences with a little more variety and a simple connective (et, mais, parce que)."
+            : "LEVEL 5 (confident beginner): about 8 sentences, a little richer vocabulary, still clear and age-appropriate.";
+
+  return `Write a short French story for a 6-7 year old learning French. Start simple and build up like a kind teacher.
+
+${levelLine}
+
+Rules:
+- Tell a little story with a clear beginning, middle and end. Keep each sentence short. Use mostly the present tense.
+- Theme for this story: ${chosen}. Make it feel fresh and specific to this theme.
+- Give a clear English translation of the whole paragraph.
+- Write 3 comprehension questions IN ENGLISH that check the child understood the story. Each is multiple choice with 3 short options and the correct option text.
+- Give one friendly "summary prompt" asking the child to say, in their own words, what the story was about.
+- Add ONE speaking question the child answers OUT LOUD in French: a simple question about the story whose answer is a short French phrase or sentence (about 3 to 8 words) that a 6-7 year old can comfortably say. Provide the French question, its English translation, the expected French answer, and the English of that answer.
+- Add a "glossary" of 4 to 6 KEY words or short phrases from the story that a young learner might not know. For each, give the French, its English meaning, and a gentle one-line hint that helps the child GUESS the meaning from the story (e.g. "You eat this for breakfast — can you guess?"). Do not simply repeat the English meaning in the hint.
+- Add a "gloss": a word-by-word helper covering the MAIN content words used in the story (nouns, verbs, adjectives, numbers). For each, give the French word exactly as it appears (lowercase, no punctuation) and a short English meaning. Skip tiny grammar words like le, la, un, une, et, à. This lets the child tap any word to see what it means.
+
+Return JSON with EXACTLY these keys:
+{
+  "title_fr": "short French title",
+  "story_fr": "the story in French (one paragraph)",
+  "story_en": "the English translation",
+  "questions": [
+    { "q": "an English comprehension question", "options": ["a","b","c"], "answer": "the correct option text" }
+  ],
+  "summary_prompt": "In your own words, what was the story about?",
+  "speak": {
+    "question_fr": "a simple French question about the story",
+    "question_en": "the English translation of that question",
+    "answer_fr": "the expected short French answer",
+    "answer_en": "the English of that answer"
+  },
+  "glossary": [
+    { "fr": "a key French word from the story", "en": "its English meaning", "hint": "a gentle clue to help the child guess" }
+  ],
+  "gloss": [
+    { "fr": "chat", "en": "cat" }
+  ]
+}`;
+}

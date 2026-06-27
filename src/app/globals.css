@@ -1,0 +1,100 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Press+Start+2P&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply font-body text-paper;
+}
+
+/* Dark "underground" backdrop: a soft modern gradient with a faint texture. */
+.app-bg {
+  background-color: #211a2b;
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, rgba(123, 192, 67, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(79, 214, 214, 0.08), transparent 55%),
+    linear-gradient(180deg, #2a2138 0%, #1c1626 100%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .mc-card {
+    @apply rounded-2xl border-4 border-black/40 bg-panel/90 p-6 shadow-pixel backdrop-blur;
+  }
+  .mc-card-dark {
+    @apply rounded-2xl border-4 border-black/50 bg-paneldark/95 p-6 shadow-pixel;
+  }
+
+  .mc-banner {
+    @apply rounded-xl border-4 border-black/40 bg-grass px-4 py-3 font-pixel text-xs leading-relaxed text-white shadow-pixelsm;
+  }
+  .mc-banner-dirt {
+    @apply rounded-xl border-4 border-black/40 bg-dirt px-4 py-3 font-pixel text-xs leading-relaxed text-white shadow-pixelsm;
+  }
+
+  .mc-fact {
+    @apply rounded-xl border-l-8 border-gold bg-black/30 px-5 py-4 text-base text-paper/90;
+  }
+
+  .mc-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border-4 border-black/40 bg-grass px-5 py-3.5 font-pixel text-sm text-white shadow-pixelsm transition active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .mc-input {
+    @apply w-full rounded-xl border-4 border-black/40 bg-black/30 px-4 py-3 text-paper placeholder:text-paper/40 focus:border-diamond focus:outline-none;
+  }
+
+  .mc-chip {
+    @apply rounded-lg border-2 border-black/40 bg-black/30 px-3 py-1 text-xs text-paper/80;
+  }
+}
+
+/* Paper worksheet: a clean white sheet that looks the same on screen and when
+   printed. On print we hide the app chrome and show only the sheet. */
+.sheet {
+  background: #ffffff;
+  color: #14110c;
+}
+.answer-line {
+  border-bottom: 2px dotted #9a9a9a;
+  min-height: 1.6rem;
+}
+.answer-box {
+  border: 2px solid #cfcfcf;
+  border-radius: 6px;
+  min-height: 2.4rem;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .sheet {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
