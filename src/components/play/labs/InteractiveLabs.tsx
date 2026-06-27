@@ -5,6 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { chime, primeVoices, speakSmart } from "@/lib/speech";
 import FrenchAudioLab from "../FrenchAudioLab";
 import FrenchReadingLab from "../FrenchReadingLab";
+import SpeakPro from "../french/SpeakPro";
+import Conversation from "../french/Conversation";
+import PictureNaming from "../french/PictureNaming";
+import SentenceBuilder from "../french/SentenceBuilder";
 import GeneratedLab from "../GeneratedLab";
 import PhysicsLab from "../PhysicsLab";
 import PhetLibrary from "../phet/PhetLibrary";
@@ -646,7 +650,7 @@ const LAB_CARDS: { id: LabId; title: string; emoji: string; blurb: string; tint:
   { id: "music", title: "Music Maker", emoji: "🎵", blurb: "Tap note blocks to make tunes", tint: C.gold },
 ];
 
-type View = LabId | "fr-audio" | "fr-reading" | "surprise" | "physics" | "science" | null;
+type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "surprise" | "physics" | "science" | null;
 
 export default function InteractiveLabs({ onExit, profileId }: { onExit: () => void; profileId: string }) {
   const [view, setView] = useState<View>(null);
@@ -662,6 +666,10 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
   if (view === "science") return <PhetLibrary onBack={() => setView(null)} profileId={profileId} />;
   if (view === "fr-audio") return <FrenchAudioLab onBack={() => setView(null)} />;
   if (view === "fr-reading") return <FrenchReadingLab onBack={() => setView(null)} />;
+  if (view === "fr-speak") return <SpeakPro onBack={() => setView(null)} />;
+  if (view === "fr-talk") return <Conversation onBack={() => setView(null)} />;
+  if (view === "fr-name") return <PictureNaming onBack={() => setView(null)} />;
+  if (view === "fr-build") return <SentenceBuilder onBack={() => setView(null)} />;
   if (view === "surprise" && surprise) return <GeneratedLab subject={surprise} onBack={() => setView(null)} />;
 
   return (
@@ -722,21 +730,47 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
         </div>
       </div>
 
-      {/* French — speak & read */}
+      {/* French — speak, talk, read, build */}
       <div className="space-y-2">
         <p className="font-pixel text-[10px] text-paper/50">🇫🇷 French</p>
-        <button onClick={() => setView("fr-audio")} className="flex w-full items-center gap-3 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(58,111,216,0.22), rgba(20,16,28,0.96))" }}>
-          <span className="text-2xl">🎧</span>
+        <button onClick={() => setView("fr-speak")} className="flex w-full items-center gap-3 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(58,111,216,0.24), rgba(20,16,28,0.96))" }}>
+          <span className="text-2xl">🗣️</span>
           <div>
-            <div className="font-pixel text-[11px] text-diamond">Listen &amp; Speak</div>
-            <div className="text-[11px] text-paper/60">Hear words, play games, say it out loud</div>
+            <div className="font-pixel text-[11px] text-diamond">Speak French</div>
+            <div className="text-[11px] text-paper/60">Hands-free coach. Say it back, get better as you go</div>
           </div>
         </button>
+        <button onClick={() => setView("fr-talk")} className="flex w-full items-center gap-3 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(23,221,98,0.16), rgba(20,16,28,0.96))" }}>
+          <span className="text-2xl">💬</span>
+          <div>
+            <div className="font-pixel text-[11px] text-grasstop">Talk with a friend</div>
+            <div className="text-[11px] text-paper/60">Real chat in a café, shop or school — just talk</div>
+          </div>
+        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setView("fr-name")} className="flex flex-col items-start gap-1 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(156,92,224,0.2), rgba(20,16,28,0.96))" }}>
+            <span className="text-2xl">🖼️</span>
+            <span className="font-pixel text-[11px] text-paper">Name it!</span>
+            <span className="text-[11px] leading-snug text-paper/60">Say or type what you see</span>
+          </button>
+          <button onClick={() => setView("fr-build")} className="flex flex-col items-start gap-1 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(242,178,51,0.18), rgba(20,16,28,0.96))" }}>
+            <span className="text-2xl">🧩</span>
+            <span className="font-pixel text-[11px] text-paper">Build a sentence</span>
+            <span className="text-[11px] leading-snug text-paper/60">Make French sentences from tiles</span>
+          </button>
+        </div>
         <button onClick={() => setView("fr-reading")} className="flex w-full items-center gap-3 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(242,178,51,0.18), rgba(20,16,28,0.96))" }}>
           <span className="text-2xl">📖</span>
           <div>
             <div className="font-pixel text-[11px] text-gold2">Reading &amp; Speaking</div>
-            <div className="text-[11px] text-paper/60">Story, word helper, questions &amp; speaking</div>
+            <div className="text-[11px] text-paper/60">Story, tap-a-word help, questions &amp; speaking</div>
+          </div>
+        </button>
+        <button onClick={() => setView("fr-audio")} className="flex w-full items-center gap-3 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel" style={{ background: "linear-gradient(160deg, rgba(79,214,214,0.14), rgba(20,16,28,0.96))" }}>
+          <span className="text-2xl">🎧</span>
+          <div>
+            <div className="font-pixel text-[11px] text-diamond">Word games</div>
+            <div className="text-[11px] text-paper/60">Hear words, listen-and-choose, learn new ones</div>
           </div>
         </button>
       </div>

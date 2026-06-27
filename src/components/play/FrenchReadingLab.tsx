@@ -613,6 +613,27 @@ function WordHelper({ glossary }: { glossary: NonNullable<ReadingStory["glossary
 // and shows its English meaning (from the story's word gloss) — like having a
 // teacher next to you to ask "what does this mean?".
 // --------------------------------------------------------------------------- //
+// Common, easy French words a young learner should try to read themselves. For
+// these we DON'T read the word aloud (so the child sounds it out); we just give
+// a gentle nudge and the English meaning. Harder words are read aloud + glossed.
+const EASY_FR = new Set([
+  "le", "la", "les", "un", "une", "des", "du", "de", "au", "aux",
+  "je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles",
+  "est", "es", "suis", "et", "a", "as", "ai", "ou", "où",
+  "oui", "non", "ici", "là", "ça", "ce", "se", "ne", "pas", "que", "qui",
+  "mon", "ma", "mes", "ton", "ta", "tes", "son", "sa", "ses", "ce", "cette",
+  "dans", "sur", "sous", "avec", "pour", "par", "à", "en", "y",
+  "papa", "maman", "chat", "chien", "rouge", "bleu", "vert", "jaune",
+  "bonjour", "salut", "merci", "petit", "grand", "eau", "pain", "lait",
+  "il", "elle", "voici", "voilà", "très", "bien", "moi", "toi", "mais",
+]);
+
+function isEasyFr(key: string): boolean {
+  if (EASY_FR.has(key)) return true;
+  // Very short words are typically easy sight words.
+  return key.replace(/[^a-zà-ÿ']/gi, "").length <= 3;
+}
+
 function normWord(w: string): string {
   return w
     .toLowerCase()
@@ -623,7 +644,7 @@ function normWord(w: string): string {
 }
 
 function ClickableStory({ text, gloss }: { text: string; gloss?: { fr: string; en: string }[] }) {
-  const [sel, setSel] = useState<{ word: string; meaning: string | null } | null>(null);
+  const [sel, setSel] = useState<{ word: string; meaning: string | null; easy: boolean } | null>(null);
 
   const map = useMemo(() => {
     const m = new Map<string, string>();
@@ -637,8 +658,11 @@ function ClickableStory({ text, gloss }: { text: string; gloss?: { fr: string; e
     const clean = rawToken.replace(/[.,!?;:«»"“”()]/g, "").trim();
     const key = normWord(clean);
     if (!key) return;
-    setSel({ word: clean, meaning: map.get(key) || null });
-    speakSmart(key, "fr-FR");
+    const easy = isEasyFr(key);
+    setSel({ word: clean, meaning: map.get(key) || null, easy });
+    // Hard/unknown words: read them aloud with the French accent. Easy words:
+    // stay silent so the child sounds them out, and only the 🔊 reveals them.
+    if (!easy) speakSmart(key, "fr-FR");
   }
 
   return (
@@ -669,7 +693,11 @@ function ClickableStory({ text, gloss }: { text: string; gloss?: { fr: string; e
         <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border-2 border-diamond/50 bg-diamond/10 px-3 py-2">
           <div className="min-w-0">
             <span className="text-lg font-bold text-gold">{sel.word}</span>
-            {sel.meaning ? (
+            {sel.easy ? (
+              <span className="ml-2 text-sm text-paper/85">
+                {sel.meaning ? `= ${sel.meaning} · ` : ""}you can read this one! Sound it out 🗣️
+              </span>
+            ) : sel.meaning ? (
               <span className="ml-2 text-sm text-paper/85">= {sel.meaning}</span>
             ) : (
               <span className="ml-2 text-xs text-paper/50">tap 🔊 to hear it again</span>
@@ -679,6 +707,7 @@ function ClickableStory({ text, gloss }: { text: string; gloss?: { fr: string; e
             <button
               onClick={() => speakSmart(normWord(sel.word), "fr-FR")}
               aria-label="Hear the word"
+              title={sel.easy ? "Check how it sounds" : "Hear it again"}
               className="rounded-lg border-2 border-black/40 bg-black/25 px-2.5 py-1 text-sm"
             >
               🔊

@@ -119,3 +119,25 @@ export interface SafeSettings {
   rewardDailyCap: number;
   rewardPerCorrect: number;
 }
+
+// --- French speaking lab shapes ---
+export interface FrenchSentence {
+  fr: string;
+  en: string;
+  words: { fr: string; en: string }[];
+}
+
+export interface FrenchConvoReply {
+  fr: string;
+  en: string;
+  hint_en?: string;
+  done?: boolean;
+}
+
+export interface FrenchBuilder {
+  target_fr: string;
+  target_en: string;
+  tiles: string[];
+  distractors?: string[];
+  hint_en?: string;
+}

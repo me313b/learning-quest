@@ -14,6 +14,9 @@ import type {
 } from "../types";
 import {
   ART_SYSTEM,
+  FRENCH_BUILDER_SYSTEM,
+  FRENCH_CONVO_SYSTEM,
+  FRENCH_SENTENCE_SYSTEM,
   GRADE_SYSTEM,
   LAB_HTML_SYSTEM,
   LAB_SYSTEM,
@@ -23,6 +26,9 @@ import {
   WORKSHEET_MARK_SYSTEM,
   type WorksheetMarkItem,
   buildArtUser,
+  buildFrenchBuilderUser,
+  buildFrenchConvoUser,
+  buildFrenchSentenceUser,
   buildGradeUser,
   buildLabHtmlUser,
   buildLabUser,
@@ -675,4 +681,101 @@ function parseReading(raw: string): ReadingStory | null {
     delete story.gloss;
   }
   return story;
+}
+
+// --------------------------------------------------------------------------- //
+// French speaking lab generators. Each requests strict JSON, retries once, and
+// returns null on failure so the caller can fall back to a built-in bank.
+// --------------------------------------------------------------------------- //
+import type { FrenchBuilder, FrenchConvoReply, FrenchSentence } from "../types";
+
+export async function generateFrenchSentence(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  level = 1,
+  recent: string[] = [],
+): Promise<FrenchSentence | null> {
+  const user = buildFrenchSentenceUser(level, recent);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, FRENCH_SENTENCE_SYSTEM, user, { maxTokens: 400 });
+      const data = extractJson(raw);
+      if (data && typeof data.fr === "string" && (data.fr as string).trim()) {
+        const fr = (data.fr as string).trim();
+        const en = typeof data.en === "string" ? (data.en as string).trim() : "";
+        const words = Array.isArray(data.words)
+          ? (data.words as { fr?: string; en?: string }[])
+              .filter((w) => w && w.fr)
+              .map((w) => ({ fr: String(w.fr).toLowerCase(), en: String(w.en || "") }))
+          : [];
+        return { fr, en, words };
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
+}
+
+export async function frenchConversationReply(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  scenario: string,
+  setting: string,
+  history: { who: "ai" | "child"; fr: string }[],
+  kidSaid: string,
+  struggled: boolean,
+): Promise<FrenchConvoReply | null> {
+  const user = buildFrenchConvoUser(scenario, setting, history, kidSaid, struggled);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, FRENCH_CONVO_SYSTEM, user, { maxTokens: 300 });
+      const data = extractJson(raw);
+      if (data && typeof data.fr === "string" && (data.fr as string).trim()) {
+        return {
+          fr: (data.fr as string).trim(),
+          en: typeof data.en === "string" ? (data.en as string).trim() : "",
+          hint_en: typeof data.hint_en === "string" ? (data.hint_en as string).trim() : "",
+          done: Boolean(data.done),
+        };
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
+}
+
+export async function generateFrenchBuilder(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  topic = "",
+  level = 2,
+): Promise<FrenchBuilder | null> {
+  const user = buildFrenchBuilderUser(topic, level);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, FRENCH_BUILDER_SYSTEM, user, { maxTokens: 400 });
+      const data = extractJson(raw);
+      if (data && typeof data.target_fr === "string" && Array.isArray(data.tiles)) {
+        const tiles = (data.tiles as unknown[]).map((t) => String(t)).filter(Boolean);
+        if (tiles.length < 2) continue;
+        return {
+          target_fr: (data.target_fr as string).trim(),
+          target_en: typeof data.target_en === "string" ? (data.target_en as string).trim() : "",
+          tiles,
+          distractors: Array.isArray(data.distractors)
+            ? (data.distractors as unknown[]).map((t) => String(t)).filter(Boolean)
+            : [],
+          hint_en: typeof data.hint_en === "string" ? (data.hint_en as string).trim() : "",
+        };
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
 }

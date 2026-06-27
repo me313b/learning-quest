@@ -6,7 +6,7 @@ import { attemptsForProfile } from "@/lib/data";
 import { currentStreak, subjectBreakdown } from "@/lib/analytics";
 import { levelFromAttempts } from "@/lib/levels";
 import { AVATARS } from "@/lib/config";
-import { primeVoices, speakSmart } from "@/lib/speech";
+import { prefetchSpeech, primeVoices, speakNaturalOnly, speakSmart } from "@/lib/speech";
 import type { Attempt, Profile } from "@/lib/types";
 import { PixelButton } from "@/components/ui/primitives";
 
@@ -28,6 +28,7 @@ export default function Welcome({
 
   useEffect(() => {
     let alive = true;
+    let cleanupGesture = () => {};
     primeVoices();
     (async () => {
       const name = profile.name || "explorer";
@@ -97,12 +98,33 @@ export default function Welcome({
       setLines(out);
       setSpoken(say);
       setLoaded(true);
-      // Best-effort: read it aloud right away. If the browser blocks autoplay,
-      // the big Listen button below still works.
-      setTimeout(() => speakSmart(say, "en-GB"), 400);
+
+      // Read the greeting aloud with the NATURAL voice only. Warm the audio,
+      // then try to play it. If the browser blocks autoplay (normal on iPad),
+      // play it the moment the child first taps or presses a key, rather than
+      // dropping to the robotic built-in voice.
+      prefetchSpeech(say, "en-GB");
+      const tryPlay = async () => {
+        if (!alive) return;
+        const ok = await speakNaturalOnly(say, "en-GB");
+        if (ok || !alive) return;
+        const once = () => {
+          cleanupGesture();
+          if (alive) speakNaturalOnly(say, "en-GB");
+        };
+        window.addEventListener("pointerdown", once);
+        window.addEventListener("keydown", once);
+        cleanupGesture = () => {
+          window.removeEventListener("pointerdown", once);
+          window.removeEventListener("keydown", once);
+          cleanupGesture = () => {};
+        };
+      };
+      setTimeout(tryPlay, 350);
     })();
     return () => {
       alive = false;
+      cleanupGesture();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.id]);

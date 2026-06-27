@@ -172,6 +172,52 @@ export async function speakSmart(text: string, lang = "en-GB"): Promise<void> {
   }
 }
 
+/** Speak using the NATURAL server voice only. Never falls back to the robotic
+ *  browser voice, and reports whether it actually started playing. Used for the
+ *  auto-played welcome greeting, where the robotic voice (or a blocked autoplay)
+ *  feels worse than waiting for the child's first tap to play the nice voice. */
+export async function speakNaturalOnly(text: string, lang = "en-GB"): Promise<boolean> {
+  const clean = (text || "").trim();
+  if (!clean) return false;
+  const key = `${lang}|${clean}`;
+  let b64 = ttsCache.get(key);
+  if (b64 === "FALLBACK") return false;
+  if (!b64) {
+    try {
+      const voice = lang.toLowerCase().startsWith("fr") ? "shimmer" : "coral";
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: clean, voice, lang }),
+      });
+      const data = await res.json();
+      if (data.audioB64) {
+        b64 = data.audioB64 as string;
+        ttsCache.set(key, b64);
+      } else {
+        ttsCache.set(key, "FALLBACK");
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+  // Play, and resolve true only if playback actually starts (it throws when the
+  // browser blocks autoplay without a user gesture).
+  try {
+    stopAll();
+    if (!sharedAudio) sharedAudio = new Audio();
+    const src = `data:audio/mpeg;base64,${b64}`;
+    if (sharedAudio.src !== src) sharedAudio.src = src;
+    sharedAudio.currentTime = 0;
+    currentAudio = sharedAudio;
+    await sharedAudio.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Warm the cache for a phrase WITHOUT playing it (used to preload audio in the
  *  background after login so the first tap is instant). */
 export async function prefetchSpeech(text: string, lang = "en-GB"): Promise<void> {

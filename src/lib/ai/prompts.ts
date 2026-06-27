@@ -402,3 +402,102 @@ Return JSON with EXACTLY these keys:
   ]
 }`;
 }
+
+// --------------------------------------------------------------------------- //
+// French speaking lab: adaptive sentences, live conversations, sentence builder.
+// All kept simple and warm for a 6-7 year old beginner.
+// --------------------------------------------------------------------------- //
+
+export const FRENCH_SENTENCE_SYSTEM =
+  "You are a kind French teacher for a 6-7 year old beginner. You create short, " +
+  "natural French phrases to say out loud. Always reply with ONLY valid JSON.";
+
+export function buildFrenchSentenceUser(level = 1, recent: string[] = []): string {
+  const lv = Math.max(1, Math.min(8, Math.round(level)));
+  const lengths =
+    lv <= 1
+      ? "1 to 2 words"
+      : lv <= 2
+        ? "2 to 3 words"
+        : lv <= 3
+          ? "3 to 4 words"
+          : lv <= 4
+            ? "a short sentence of 4 to 5 words"
+            : lv <= 5
+              ? "a sentence of 5 to 6 words"
+              : lv <= 6
+                ? "a sentence of 6 to 7 words"
+                : "a sentence of 7 to 9 words with a simple connective (et, mais, parce que)";
+  const avoid = recent.length ? `\nDo NOT reuse these recent phrases: ${recent.slice(-12).join(" | ")}.` : "";
+  return `Give ONE French phrase for the child to say out loud. Difficulty level ${lv} of 8.
+Length: ${lengths}. Use the present tense and very common, child-friendly words (animals, food, family, colours, school, play, greetings, feelings).
+Make it natural and fun to say. Avoid tongue-twisters.${avoid}
+
+Return JSON with EXACTLY these keys:
+{
+  "fr": "the French phrase",
+  "en": "its English meaning",
+  "words": [ { "fr": "each French word lowercase", "en": "its English meaning" } ]
+}`;
+}
+
+export const FRENCH_CONVO_SYSTEM =
+  "You are role-playing a friendly French person chatting with a 6-7 year old who is " +
+  "learning French. Stay fully in character for the place. Speak ONLY in very simple French, " +
+  "one short line at a time (about 3 to 9 words), present tense, common words. Be warm, playful " +
+  "and encouraging. Always end your line with a simple question so the child can reply. Always " +
+  "reply with ONLY valid JSON.";
+
+export function buildFrenchConvoUser(
+  scenario: string,
+  setting: string,
+  history: { who: "ai" | "child"; fr: string }[],
+  kidSaid: string,
+  struggled: boolean,
+): string {
+  const convo =
+    history.length === 0
+      ? "(the conversation is just starting — greet the child warmly and ask the first simple question)"
+      : history.map((h) => `${h.who === "ai" ? "You" : "Child"}: ${h.fr}`).join("\n");
+  const last = kidSaid ? `\nThe child just said (transcribed, may be imperfect): "${kidSaid}".` : "";
+  const help = struggled
+    ? "The child is finding it hard. Make your next line EXTRA simple and short, gently rephrase, and give a tiny hint in English to help them answer (even one word is fine)."
+    : "Keep it flowing naturally and add a little new detail.";
+  return `Scenario: ${scenario}. Setting: ${setting}.
+Conversation so far:
+${convo}${last}
+
+${help}
+Respond as your character with ONE short French line that reacts to what the child said and asks one simple question.
+
+Return JSON with EXACTLY these keys:
+{
+  "fr": "your short French line (with a question)",
+  "en": "the English translation",
+  "hint_en": "a tiny hint to help the child answer, in English (keep short; empty string if not needed)",
+  "done": false
+}`;
+}
+
+export const FRENCH_BUILDER_SYSTEM =
+  "You help a 6-7 year old build a French sentence from word tiles. Keep it simple, correct and " +
+  "fun. Always reply with ONLY valid JSON.";
+
+export function buildFrenchBuilderUser(topic = "", level = 2): string {
+  const lv = Math.max(1, Math.min(5, Math.round(level)));
+  const len =
+    lv <= 2 ? "3 to 4 words" : lv <= 3 ? "4 to 5 words" : lv <= 4 ? "5 to 6 words" : "6 to 7 words";
+  const t = topic ? `Topic: ${topic}.` : "Pick a fun, child-friendly topic.";
+  return `Make ONE correct, simple French sentence a 6-7 year old can build from word tiles. ${t}
+Length: ${len}. Present tense, very common words. The sentence must read naturally.
+Provide the words as separate tiles (each tile is one word, lowercase, in the CORRECT order). Add 1 or 2 extra "distractor" word tiles that do NOT belong, to make it a gentle puzzle.
+
+Return JSON with EXACTLY these keys:
+{
+  "target_fr": "the correct French sentence",
+  "target_en": "its English meaning",
+  "tiles": ["word","word","word"],
+  "distractors": ["extraword"],
+  "hint_en": "a short hint about what the sentence means"
+}`;
+}
