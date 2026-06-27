@@ -65,7 +65,7 @@ export default function PictureNaming({ onBack }: { onBack: () => void }) {
 
   async function sayIt() {
     setStatus("");
-    const res = await listen(7000);
+    const res = await listen(7000, { prompt: item.fr });
     const said = (res?.text || "").trim();
     setHeard(said);
     if (said) check(said);

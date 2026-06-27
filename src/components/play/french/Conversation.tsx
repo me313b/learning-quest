@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useHandsFree } from "@/lib/french/useHandsFree";
 import { SCENARIOS, CONVO_FALLBACK, type Scenario } from "@/lib/french/scenarios";
 import { praiseFr } from "@/lib/french/compare";
-import { chime, speakNaturalOnly } from "@/lib/speech";
+import { chime, prefetchSpeech, speakNaturalOnly } from "@/lib/speech";
 import { PixelButton } from "@/components/ui/primitives";
 
 interface Msg {
@@ -35,6 +35,9 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
   const scenarioRef = useRef<Scenario | null>(null);
 
   useEffect(() => {
+    // Warm the opening lines so the conversation can start the instant a place
+    // is picked, with no waiting for audio.
+    SCENARIOS.forEach((sc) => prefetchSpeech(sc.opener.fr, "fr-FR"));
     return () => {
       runningRef.current = false;
     };
@@ -48,7 +51,8 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
   async function childTurn() {
     if (!runningRef.current) return;
     setPhase("listening");
-    const res = await listen(10000);
+    const lastAiLine = [...messagesRef.current].reverse().find((m) => m.who === "ai")?.fr || "";
+    const res = await listen(10000, { prompt: lastAiLine });
     if (!runningRef.current) return;
     const said = (res?.text || "").trim();
     if (said) {
@@ -130,7 +134,7 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
     await speakNaturalOnly(`${p.fr} Au revoir !`, "fr-FR");
   }
 
-  function begin(sc: Scenario) {
+  async function begin(sc: Scenario) {
     scenarioRef.current = sc;
     setScenario(sc);
     messagesRef.current = [];
@@ -139,7 +143,16 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
     emptyRef.current = 0;
     setHint("");
     runningRef.current = true;
-    aiTurn("");
+    // Start instantly with the scenario's own opener (audio is pre-warmed), then
+    // hand over to the AI for every following turn.
+    aiTurnsRef.current = 1;
+    push({ who: "ai", fr: sc.opener.fr, en: sc.opener.en });
+    setHint(sc.opener.hint_en);
+    setPhase("speaking");
+    await speakNaturalOnly(sc.opener.fr, "fr-FR");
+    if (!runningRef.current) return;
+    await wait(250);
+    await childTurn();
   }
 
   function leave() {

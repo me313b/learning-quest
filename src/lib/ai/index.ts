@@ -579,26 +579,34 @@ export async function transcribeAudio(
   audioB64: string,
   mime = "audio/webm",
   language = "",
+  prompt = "",
 ): Promise<string | null> {
   if (provider !== "openai" || !apiKey) return null;
-  try {
-    const bytes = Buffer.from(audioB64, "base64");
-    const blob = new Blob([bytes], { type: mime });
-    const form = new FormData();
-    form.append("file", blob, "audio.webm");
-    form.append("model", "whisper-1");
-    if (language) form.append("language", language);
-    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { authorization: `Bearer ${apiKey}` },
-      body: form,
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return typeof data.text === "string" ? data.text : "";
-  } catch {
-    return null;
+  const bytes = Buffer.from(audioB64, "base64");
+  const url = "https://api.openai.com/v1/audio/transcriptions";
+  const headers = { authorization: `Bearer ${apiKey}` };
+  // Try the newer, more accurate transcription model first — it handles young
+  // and accented voices much better — then fall back to whisper-1. The `prompt`
+  // biases recognition toward the words we expect (e.g. the target phrase), so
+  // a child's halting French is far less likely to be mis-heard.
+  for (const model of ["gpt-4o-mini-transcribe", "whisper-1"]) {
+    try {
+      const form = new FormData();
+      form.append("file", new Blob([bytes], { type: mime }), "audio.webm");
+      form.append("model", model);
+      form.append("response_format", "json");
+      if (language) form.append("language", language);
+      if (prompt) form.append("prompt", prompt.slice(0, 800));
+      const res = await fetch(url, { method: "POST", headers, body: form });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.text === "string") return data.text;
+      }
+    } catch {
+      /* try the next model */
+    }
   }
+  return null;
 }
 
 // --------------------------------------------------------------------------- //

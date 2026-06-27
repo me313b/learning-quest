@@ -73,7 +73,10 @@ export function useHandsFree() {
   }, []);
 
   const listen = useCallback(
-    async (maxMs = 9000): Promise<ListenResult | null> => {
+    async (
+      maxMs = 9000,
+      opts?: { language?: string; prompt?: string },
+    ): Promise<ListenResult | null> => {
       setStatus("listening");
       let heardSpeech = false;
       try {
@@ -104,9 +107,9 @@ export function useHandsFree() {
         src.connect(analyser);
         const buf = new Uint8Array(analyser.fftSize);
 
-        const SPEAK = 0.045; // RMS above this counts as talking
-        const QUIET = 0.03; // RMS below this counts as silence
-        const SILENCE_MS = 1500; // stop this long after talking stops
+        const SPEAK = 0.04; // RMS above this counts as talking (a touch softer, for quiet kids)
+        const QUIET = 0.025; // RMS below this counts as silence
+        const SILENCE_MS = 1200; // stop this long after talking stops (snappier turns)
         const GRACE_MS = 700; // don't allow an instant stop at the very start
         const start = performance.now();
         let lastVoice = start;
@@ -176,7 +179,12 @@ export function useHandsFree() {
           const res = await fetch("/api/transcribe", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ audioB64, mime: usedMime, language: "fr" }),
+            body: JSON.stringify({
+              audioB64,
+              mime: usedMime,
+              language: opts?.language || "fr",
+              prompt: opts?.prompt || "",
+            }),
           });
           const data = await res.json();
           if (typeof data.text === "string") text = data.text.trim();

@@ -71,7 +71,7 @@ export default function SpeakPro({ onBack }: { onBack: () => void }) {
     await wait(250);
     if (!runningRef.current) return;
     setPhase("listen");
-    const res = await listen(9000);
+    const res = await listen(9000, { prompt: sentenceRef.current?.fr });
     if (!runningRef.current) return;
     await judge(res?.text || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,7 +148,7 @@ export default function SpeakPro({ onBack }: { onBack: () => void }) {
         if (!runningRef.current) return;
         await wait(200);
         setPhase("listen");
-        const res = await listen(9000);
+        const res = await listen(9000, { prompt: sentenceRef.current?.fr });
         if (!runningRef.current) return;
         await judge(res?.text || "");
       } else {

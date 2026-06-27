@@ -12,6 +12,7 @@ interface Body {
   audioB64: string;
   mime?: string;
   language?: string;
+  prompt?: string;
 }
 
 export async function POST(req: Request) {
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
     audioB64,
     body.mime || "audio/webm",
     body.language || "",
+    body.prompt || "",
   );
   if (text === null) return NextResponse.json({ fallback: true });
   return NextResponse.json({ text });
