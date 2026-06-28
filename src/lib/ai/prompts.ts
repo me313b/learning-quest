@@ -31,6 +31,7 @@ export function buildQuestionUser(
   reasoning = false,
   avoid: string[] = [],
   worksheet = false,
+  frenchTask = "",
 ): string {
   const meta = SUBJECTS[subject];
   const band = DIFFICULTY_BANDS[Math.round(difficulty)] ?? "";
@@ -107,23 +108,40 @@ export function buildQuestionUser(
     "not a one-liner. For reading, include a short passage in the prompt and ask a comprehension or " +
     "inference question with four answer choices. Put the full question and all four options in the prompt-appropriate fields.";
 
-  // French: sentence-level tasks for a child who already knows simple words.
-  // Critically, a phrase the child must translate INTO French stays in English
-  // and is never spoken; only genuine, non-answer French ever goes to audio.
-  const frenchRule =
-    '"type" must be "short_text" (the child SPEAKS or writes the answer). Build a GENUINELY useful ' +
-    "French task for a child who already knows simple words and is ready for short SENTENCES, scaled " +
-    "to the band (a few words at low bands, fuller sentences higher up). Rotate between: " +
-    '(a) TRANSLATE TO FRENCH — show a short ENGLISH sentence for the child to put into French (KEEP ' +
+  // French quest: ONE task type per question across the set, chosen by the caller
+  // (frenchTask) — never "what does this word mean?" every time. The child answers
+  // by typing or speaking; multiple choice is for the printed worksheet only.
+  const frenchVocab =
+    '"type" must be "short_text" and you MUST set "expectMulti": true. Give FIVE French words or very ' +
+    "short phrases suitable for the band, numbered 1-5 in the prompt, and VARY the theme (animals, " +
+    "colours, food, family, numbers, school, actions). Ask the child for the ENGLISH meaning of ALL " +
+    'FIVE, written on one line separated by commas. Put the five English meanings in "answer" as a ' +
+    'comma-separated list IN THE SAME ORDER as the words. Put ONLY the five French words in "audioText".';
+  const frenchInterview =
+    '"type" must be "short_text". Ask ONE friendly, real INTERVIEW question in simple French that the ' +
+    "child answers in French — about their name, age, family, pets, or a favourite colour/food/animal, " +
+    'or what they did today (e.g. "Comment t\'appelles-tu ?", "Quel est ton animal préféré ?"). Put the ' +
+    'French question in "audioText". Give a short, natural model answer in French in "answer" as a guide ' +
+    "only; any sensible French reply is acceptable.";
+  const frenchSentence =
+    '"type" must be "short_text". Ask the child to MAKE their own short French sentence — using a given ' +
+    'French word, or about a small topic (e.g. "Fais une phrase avec le mot « chat ».", "Écris une ' +
+    'phrase sur ta famille."). Put the French instruction in "audioText". Give a correct model sentence ' +
+    'in "answer" as a guide only; any sensible, well-formed French sentence is acceptable.';
+  const frenchTranslate =
+    '"type" must be "short_text". Show a short ENGLISH sentence for the child to put INTO French (KEEP ' +
     'that sentence in English, e.g. "I am happy", "The cat is black", "I would like an apple"); the ' +
-    'child produces the French; put the French in "answer" with variants in "acceptable"; set ' +
-    '"audioText" to "" so the answer is never spoken and English is never read aloud. ' +
-    "(b) UNDERSTAND FRENCH — give a short FRENCH sentence and ask what it means in English (English " +
-    'answer); put that French sentence in BOTH the prompt and "audioText". ' +
-    "(c) COMPLETE or reorder a short French sentence. " +
-    'ABSOLUTE AUDIO RULE: "audioText" must contain ONLY French that is correct to read aloud, and ' +
-    "NEVER the answer and NEVER any English. Everything the child reads is in French EXCEPT a source " +
-    "phrase being translated, which stays in its original language.";
+    'child produces the French. Put the French in "answer" with variants in "acceptable". Set ' +
+    '"audioText" to "" so the answer is never spoken and English is never read aloud. Scale the ' +
+    "sentence length with the band.";
+  const frenchRule =
+    frenchTask === "vocab"
+      ? frenchVocab
+      : frenchTask === "interview"
+        ? frenchInterview
+        : frenchTask === "sentence"
+          ? frenchSentence
+          : frenchTranslate;
 
   let formatRule: string;
   if (worksheet) formatRule = worksheetRule;
@@ -163,18 +181,17 @@ export function buildQuestionUser(
   const frenchAudio =
     subject === "french"
       ? `
-FRENCH AUDIO (required for this subject):
-- "displayText": the English instruction shown on screen (e.g. "Which word means cat?", "Listen and choose the meaning.").
-- "audioText": ONLY the French word, phrase or sentence that should be SPOKEN ALOUD (e.g. "chat", "J'ai un chat."). It must contain French only. NEVER put the English prompt or instruction in audioText.
-- "audioLanguage": always "fr-FR".
-- "listening": set true ONLY for a listen-first question where the child hears the French (audioText) and the options are the ENGLISH meanings; otherwise false. For a listening question, "displayText" should be something like "Listen and choose the meaning." and must not reveal the French in writing.
-- Set "prompt" equal to "displayText".`
+FRENCH (required for this subject):
+- The child answers by TYPING or SPEAKING. Do NOT use multiple choice and leave "options" as [].
+- "displayText": the child-facing question text. Write instructions in simple French; the ONLY exception is an English source phrase the child must translate INTO French, which stays in English. Set "prompt" equal to "displayText".
+- "audioText": ONLY French that is safe to read aloud and is NEVER the answer and NEVER English. Use "" when there is no safe French to speak (e.g. a translate-into-French task).
+- "audioLanguage": "fr-FR" when audioText has French, otherwise "".`
       : "";
 
   return `Create one ${meta.label} question.
 
 CHILD: ${profile.name}, age ${profile.age}, school year ${profile.year}.
-DIFFICULTY: level ${difficulty}/10 -> ${band}
+DIFFICULTY: level ${difficulty}/15 -> ${band}
 ${focusLine}
 ${coverageLine}
 ${themeLine}
@@ -198,6 +215,7 @@ Return JSON with EXACTLY these keys:
   "audioText": "for French: ONLY French that is safe to read aloud (NEVER English, NEVER the answer); empty string if there is no safe French to speak. Otherwise empty string",
   "audioLanguage": "fr-FR when audioText is French, otherwise empty string",
   "listening": false,
+  "expectMulti": false,
   "options": ["A","B","C","D"],
   "answer": "the single correct answer (option text, or the number, or '' for creative)",
   "acceptable": ["other acceptable answers if any"],

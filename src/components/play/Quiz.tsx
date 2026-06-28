@@ -98,6 +98,8 @@ interface RawGrade {
   art?: ArtResult;
   userAnswerText: string;
   elapsed: number;
+  // Five-word vocabulary: how many of the items were correct.
+  multiScore?: { got: number; total: number };
 }
 
 function threshold(subject: string): number {
@@ -368,6 +370,11 @@ export default function Quiz({
     // The French subject is always taught in French, whatever the global setting.
     const lang: "en" | "fr" = s === "french" ? "fr" : language;
 
+    // French rotates ONE task type per question across the set: vocabulary (five
+    // words at once), an interview question, make-a-sentence, and translate.
+    const FRENCH_TASKS = ["vocab", "interview", "sentence", "translate"];
+    const frenchTask = s === "french" ? FRENCH_TASKS[idx] || "translate" : "";
+
     let q: Question | null = null;
     try {
       const isLast = idx === threshold(s) - 1 && SUBJECTS[s]?.grading !== "creative";
@@ -382,8 +389,9 @@ export default function Quiz({
           targetSkills,
           coveredThisWeek: covered,
           language: lang,
-          reasoning: isLast,
+          reasoning: isLast && s !== "french",
           avoid: avoid.slice(0, 24),
+          frenchTask,
         }),
       });
       const data = await res.json();
@@ -391,7 +399,7 @@ export default function Quiz({
     } catch {
       q = null;
     }
-    if (!q) q = fallbackQuestion(s, diff, toChildProfile(profile));
+    if (!q) q = fallbackQuestion(s, diff, toChildProfile(profile), frenchTask);
     if (q.prompt) askedPromptsRef.current = [q.prompt, ...askedPromptsRef.current].slice(0, 30);
 
     questionRef.current = q;
@@ -449,6 +457,54 @@ export default function Quiz({
         tip: "",
         userAnswerText: "",
         elapsed,
+      };
+    }
+
+    // Five-word vocabulary: mark by how many of the meanings are right.
+    if (q.expectMulti) {
+      const normItem = (x: string) => x.toLowerCase().replace(/[^a-z0-9' ]/g, "").trim();
+      const match1 = (a: string, b: string) => {
+        const x = normItem(a);
+        const y = normItem(b);
+        if (!x || !y) return false;
+        return x === y || x.includes(y) || y.includes(x);
+      };
+      const expected = correctAnswer
+        .split(/[,;/]+/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      let given = userAnswerText
+        .split(/[,;/]+/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      // If they didn't use commas, fall back to splitting on spaces.
+      if (given.length < expected.length && !/[,;/]/.test(userAnswerText)) {
+        given = userAnswerText.split(/\s+/).map((x) => x.trim()).filter(Boolean);
+      }
+      const used = new Array(given.length).fill(false);
+      let got = 0;
+      for (const want of expected) {
+        for (let i = 0; i < given.length; i++) {
+          if (used[i]) continue;
+          if (match1(given[i], want)) {
+            used[i] = true;
+            got++;
+            break;
+          }
+        }
+      }
+      const total = expected.length || 5;
+      const verdict: Verdict =
+        got >= total ? "correct" : got >= Math.ceil(total * 0.4) ? "partial" : "incorrect";
+      return {
+        verdict,
+        correctAnswer,
+        solution: `The meanings were: ${correctAnswer}.`,
+        correction: correctAnswer,
+        tip: "",
+        userAnswerText,
+        elapsed,
+        multiScore: { got, total },
       };
     }
 
@@ -601,6 +657,20 @@ export default function Quiz({
     // Creative work has no second chance: it's always a celebrated success.
     if (q.type === "creative") {
       await commit(q, s, "correct", g, { secondTry: false, feedback: g.art?.praise || "Lovely work!", reveal: false });
+      return;
+    }
+
+    // Five-word vocabulary is marked by how many are right — show the score
+    // straight away (a single retry on five items doesn't make sense).
+    if (q.expectMulti && g.multiScore) {
+      const { got, total } = g.multiScore;
+      const fb =
+        got >= total
+          ? `Perfect — all ${total} right! 🎉`
+          : got === 0
+            ? "Let's look at these together."
+            : `You got ${got} out of ${total}! 👏`;
+      await commit(q, s, g.verdict, g, { secondTry: false, feedback: fb, reveal: true });
       return;
     }
 

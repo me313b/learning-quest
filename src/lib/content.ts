@@ -107,6 +107,11 @@ function q(
     hint: partial.hint ?? "Take it one step at a time.",
     solution: partial.solution ?? "",
     source: "fallback",
+    audioText: partial.audioText,
+    audioLanguage: partial.audioLanguage,
+    displayText: partial.displayText,
+    listening: partial.listening,
+    expectMulti: partial.expectMulti,
   };
 }
 
@@ -338,21 +343,94 @@ const FRENCH_BANK: Array<[string, string, string[], string]> = [
   ["cheese", "fromage", ["pain", "eau", "pomme"], "food and drink"],
 ];
 
-function frenchQuestion(level: number): Question {
-  const [en, fr, distractors, area] = choice(FRENCH_BANK);
-  const options = [fr, ...distractors].sort(() => Math.random() - 0.5);
+function frenchQuestion(level: number, task = ""): Question {
+  // Vocabulary: five French words at once, marked by how many meanings are right.
+  if (task === "vocab") {
+    const pool = [...FRENCH_BANK].sort(() => Math.random() - 0.5).slice(0, 5);
+    const lines = pool.map(([en, fr], i) => `${i + 1}) ${fr}`).join("   ");
+    const answers = pool.map(([en]) => en).join(", ");
+    const frWords = pool.map(([, fr]) => fr).join(", ");
+    return q({
+      type: "short_text",
+      topic: "vocabulary",
+      skill: "French vocabulary",
+      difficulty: level,
+      prompt: `What do these five French words mean? Write all five in English, separated by commas.\n${lines}`,
+      answer: answers,
+      audioText: frWords,
+      audioLanguage: "fr-FR",
+      expectMulti: true,
+      hint: "Say each one out loud — some sound like the English word.",
+      solution: `The meanings are: ${answers}.`,
+    });
+  }
+  // Translate a short English sentence into French (answer hidden, never spoken).
+  if (task === "translate") {
+    const [en, fr] = choice(FRENCH_BANK);
+    return q({
+      type: "short_text",
+      topic: "translation",
+      skill: "translating into French",
+      difficulty: level,
+      prompt: `Say this in French: "${en}"`,
+      answer: fr,
+      audioText: "",
+      hint: "Think of the French word you have learned for this.",
+      solution: `"${en}" in French is "${fr}".`,
+    });
+  }
+  // Interview: a real French question the child answers in French (open).
+  if (task === "interview") {
+    const [ask, model] = choice(FRENCH_INTERVIEW);
+    return q({
+      type: "short_text",
+      topic: "speaking",
+      skill: "answering in French",
+      difficulty: level,
+      prompt: ask,
+      answer: "",
+      audioText: ask,
+      audioLanguage: "fr-FR",
+      hint: "Answer with a short French sentence — say it out loud if you like.",
+      solution: `One way to answer: ${model}`,
+    });
+  }
+  // Make a sentence (open). Default for any other French question.
+  const [ask, model] = choice(FRENCH_SENTENCE);
   return q({
-    type: "multiple_choice",
-    topic: area,
-    skill: area,
+    type: "short_text",
+    topic: "writing",
+    skill: "making a French sentence",
     difficulty: level,
-    prompt: `Which French word means "${en}"?`,
-    options,
-    answer: fr,
-    hint: "Say each word out loud and listen for the one you know.",
-    solution: `"${en}" in French is "${fr}".`,
+    prompt: ask,
+    answer: "",
+    audioText: ask,
+    audioLanguage: "fr-FR",
+    hint: "Keep it short — a few French words that go together.",
+    solution: `For example: ${model}`,
   });
 }
+
+// French interview questions with a sample answer (used only as a guide).
+const FRENCH_INTERVIEW: Array<[string, string]> = [
+  ["Comment t'appelles-tu ?", "Je m'appelle Aiden."],
+  ["Quel âge as-tu ?", "J'ai sept ans."],
+  ["Quel est ton animal préféré ?", "Mon animal préféré est le chien."],
+  ["Quelle est ta couleur préférée ?", "Ma couleur préférée est le bleu."],
+  ["Qu'est-ce que tu aimes manger ?", "J'aime manger des pâtes."],
+  ["As-tu un frère ou une sœur ?", "Oui, j'ai une sœur."],
+  ["Comment vas-tu aujourd'hui ?", "Je vais très bien, merci."],
+];
+
+// Make-a-sentence prompts with a sample correct sentence (guide only).
+const FRENCH_SENTENCE: Array<[string, string]> = [
+  ["Fais une phrase avec le mot « chat ».", "Le chat est noir."],
+  ["Fais une phrase avec le mot « rouge ».", "La pomme est rouge."],
+  ["Écris une phrase sur ta famille.", "J'ai une grande famille."],
+  ["Fais une phrase avec le mot « école ».", "Je vais à l'école."],
+  ["Écris une phrase sur ce que tu aimes.", "J'aime jouer au football."],
+  ["Fais une phrase avec le mot « pomme ».", "Je mange une pomme."],
+];
 
 // --------------------------------------------------------------------------- //
 // Reading: open sentence work across a few areas
@@ -456,13 +534,14 @@ export function fallbackQuestion(
   subject: string,
   difficulty: number,
   _profile: ChildProfile,
+  frenchTask = "",
 ): Question {
   const level = Math.max(1, Math.min(15, Math.round(difficulty)));
   switch (subject) {
     case "maths":
       return mathsQuestion(level);
     case "french":
-      return frenchQuestion(level);
+      return frenchQuestion(level, frenchTask);
     case "reading":
       return readingQuestion(level);
     case "art":

@@ -21,6 +21,7 @@ interface Body {
   language?: "en" | "fr";
   reasoning?: boolean;
   avoid?: string[];
+  frenchTask?: string;
 }
 
 export async function POST(req: Request) {
@@ -44,11 +45,18 @@ export async function POST(req: Request) {
       body.language === "fr" ? "fr" : "en",
       Boolean(body.reasoning),
       Array.isArray(body.avoid) ? body.avoid : [],
+      false,
+      typeof body.frenchTask === "string" ? body.frenchTask : "",
     );
     if (q) return NextResponse.json({ question: q });
   }
 
   // No key, or the model hiccuped: always return a usable question.
-  const q = fallbackQuestion(body.subject, difficulty, body.profile);
+  const q = fallbackQuestion(
+    body.subject,
+    difficulty,
+    body.profile,
+    typeof body.frenchTask === "string" ? body.frenchTask : "",
+  );
   return NextResponse.json({ question: q });
 }

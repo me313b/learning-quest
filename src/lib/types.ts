@@ -38,6 +38,9 @@ export interface Question {
   audioLanguage?: string;
   displayText?: string;
   listening?: boolean;
+  // French vocabulary task: the prompt asks for several meanings at once and the
+  // answer is a comma-separated list; marking is by how many are correct.
+  expectMulti?: boolean;
 }
 
 // The full child profile row (Supabase `profiles` table).

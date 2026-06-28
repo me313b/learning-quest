@@ -16,6 +16,7 @@ export type ExternalCategoryId =
   | "science"
   | "coding"
   | "reading"
+  | "languages"
   | "art"
   | "geography"
   | "history";
@@ -35,6 +36,7 @@ export const EXTERNAL_CATEGORIES: ExternalCategory[] = [
   { id: "music", label: "Music", emoji: "🎵", blurb: "Make songs, beats and sounds" },
   { id: "coding", label: "Coding", emoji: "💻", blurb: "Puzzles that teach programming" },
   { id: "reading", label: "Reading", emoji: "📖", blurb: "Phonics, books and word games" },
+  { id: "languages", label: "French", emoji: "🇫🇷", blurb: "French words, games and audio" },
   { id: "art", label: "Art", emoji: "🎨", blurb: "Draw, create and play" },
 ];
 
@@ -146,6 +148,10 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   { id: "tymtr", title: "Teach Your Monster to Read", emoji: "👾", description: "Award-winning phonics adventure.", provider: "Teach Your Monster", credit: "Teach Your Monster / Usborne Foundation (teachyourmonster.org)", category: "reading", url: "https://www.teachyourmonster.org/" },
   { id: "oxford-owl", title: "Oxford Owl eBooks", emoji: "🦉", description: "A free library of levelled story books (sign in on the site).", provider: "Oxford Owl", credit: "Oxford Owl — Oxford University Press (oxfordowl.co.uk)", category: "reading", url: "https://www.oxfordowl.co.uk/for-home/find-a-book/library-page/" },
   { id: "storyline", title: "Storyline Online", emoji: "📚", description: "Famous actors read lovely picture books aloud.", provider: "Storyline Online", credit: "Storyline Online — SAG-AFTRA Foundation (storylineonline.net)", category: "reading", url: "https://storylineonline.net/" },
+  { id: "languageguide-fr", title: "French Visual Vocabulary", emoji: "🖼️", description: "Tap or hover over pictures to hear French words, with speaking and listening challenges.", provider: "LanguageGuide", credit: "LanguageGuide.org", category: "languages", url: "https://www.languageguide.org/french/vocabulary/" },
+  { id: "french-games-net", title: "French Games", emoji: "🎯", description: "Over 100 topics with native audio, gentle lessons and 14 quick games.", provider: "French-Games.net", credit: "French-Games.net", category: "languages", url: "https://www.french-games.net/" },
+  { id: "digital-dialects-fr", title: "Digital Dialects: French", emoji: "🗨️", description: "Simple free French games with audio for beginners — numbers, colours, food and more.", provider: "Digital Dialects", credit: "Digital Dialects (digitaldialects.com)", category: "languages", url: "https://www.digitaldialects.com/French.htm" },
+  { id: "helpfulgames-fr", title: "Helpful Games: French", emoji: "🎲", description: "Vocabulary games for young learners — numbers, colours, days, months and more.", provider: "Helpful Games", credit: "Helpful Games (helpfulgames.com)", category: "languages", url: "https://www.helpfulgames.com/subjects/french/" },
 ];
 
 export function resourcesByCategory(cat: ExternalCategoryId): ExternalResource[] {

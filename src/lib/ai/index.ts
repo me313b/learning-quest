@@ -232,6 +232,7 @@ function parseQuestion(raw: string, subject: string, difficulty: number): Questi
     audioLanguage: typeof d.audioLanguage === "string" ? d.audioLanguage : undefined,
     displayText: typeof d.displayText === "string" ? d.displayText : undefined,
     listening: Boolean(d.listening),
+    expectMulti: Boolean(d.expectMulti),
   };
   return validateQuestion(q) ? q : null;
 }
@@ -263,6 +264,7 @@ export async function generateQuestion(
   reasoning = false,
   avoid: string[] = [],
   worksheet = false,
+  frenchTask = "",
 ): Promise<Question | null> {
   const user = buildQuestionUser(
     subject,
@@ -275,6 +277,7 @@ export async function generateQuestion(
     reasoning,
     avoid,
     worksheet,
+    frenchTask,
   );
   // Try twice: models occasionally return malformed JSON or a question that
   // doesn't fit its type. One retry fixes nearly all of these; if both fail the
