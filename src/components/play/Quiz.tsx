@@ -248,10 +248,14 @@ export default function Quiz({
     let alive = true;
 
     (async () => {
-      if (question.listening && question.audioText) {
-        await speakSmart(question.audioText, question.audioLanguage || "fr-FR");
+      const frAudio = (question.audioText || "").trim();
+      if (frAudio) {
+        // Always speak the exact French (or listening) phrase, in French.
+        await speakSmart(frAudio, question.audioLanguage || "fr-FR");
       } else if (isFrench) {
-        await speakSmart(question.audioText || text, "fr-FR");
+        // No proper French audio supplied: stay silent rather than read an
+        // English instruction in a French accent, which would teach the wrong
+        // sound.
       } else if (words > 10) {
         await speakSmart(text, "en-GB");
       }
@@ -727,6 +731,18 @@ export default function Quiz({
       currentSubject === "physics" ||
       /\b(why|how|explain|describe|because)\b/i.test(question.prompt || ""));
 
+  const isFrenchQ = language === "fr" || currentSubject === "french";
+  const qDiff = question?.difficulty || difficulty;
+  // Turn a hard question into an exciting "boss" moment rather than a scary one.
+  const boss =
+    qDiff >= 11
+      ? { label: "BOSS LEVEL", emoji: "⚔️", cls: "border-redstone/60 bg-redstone/20 text-redstone", pulse: true }
+      : qDiff >= 9
+        ? { label: "EPIC CHALLENGE", emoji: "🔥", cls: "border-gold/60 bg-gold/20 text-gold", pulse: true }
+        : qDiff >= 7
+          ? { label: "TOUGH ONE", emoji: "💥", cls: "border-diamond/60 bg-diamond/15 text-diamond", pulse: false }
+          : null;
+
   return (
     <div className="relative mx-auto max-w-3xl space-y-5">
       {celebrate && <Confetti />}
@@ -768,7 +784,16 @@ export default function Quiz({
 
       {phase === "question" && question && (
         <div className="mc-card-dark space-y-5">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {boss && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-md border-2 px-2.5 py-1 font-pixel text-[10px] ${boss.cls} ${
+                  boss.pulse ? "animate-pulse" : ""
+                }`}
+              >
+                {boss.emoji} {boss.label}
+              </span>
+            )}
             {question.topic && (
               <span className="inline-block rounded-md bg-black/30 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-grasstop">
                 {question.topic}
@@ -780,6 +805,13 @@ export default function Quiz({
               </span>
             )}
           </div>
+          {boss && attempt === 1 && (
+            <p className="text-sm font-semibold text-paper/75">
+              {boss.label === "BOSS LEVEL"
+                ? "⚔️ A boss-level question! Take your time and give it everything."
+                : "You've reached a really hard one. Have a proper think — you can do this!"}
+            </p>
+          )}
           <div className="flex items-start justify-between gap-3">
             <p className="text-2xl font-semibold leading-snug text-paper sm:text-3xl">
               {question.displayText || question.prompt}
@@ -788,11 +820,9 @@ export default function Quiz({
               onClick={() => {
                 const at = question.audioText?.trim();
                 if (at) speakSmart(at, question.audioLanguage || "fr-FR");
-                else
-                  speakSmart(
-                    question.displayText || question.prompt,
-                    language === "fr" ? "fr-FR" : "en-GB",
-                  );
+                else if (language !== "fr" && currentSubject !== "french")
+                  speakSmart(question.displayText || question.prompt, "en-GB");
+                // French with no French audio: stay silent rather than mispronounce.
               }}
               title="Hear it"
               aria-label="Hear it"
@@ -804,6 +834,20 @@ export default function Quiz({
 
           {question.listening && question.audioText && (
             <p className="text-center text-xs text-paper/50">🎧 Listen and choose — tap 🔊 to hear it again</p>
+          )}
+
+          {isFrenchQ && !question.listening && (question.audioText || "").trim() && (
+            <button
+              onClick={() =>
+                speakSmart((question.audioText || "").trim(), question.audioLanguage || "fr-FR")
+              }
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border-4 border-emerald/50 bg-emerald/10 px-4 py-3 active:translate-y-0.5"
+            >
+              <span className="text-2xl">🔊</span>
+              <span className="text-xl font-semibold text-paper sm:text-2xl">
+                {(question.audioText || "").trim()}
+              </span>
+            </button>
           )}
 
           {attempt === 2 && hintText && (
@@ -950,7 +994,7 @@ export default function Quiz({
 
       {phase === "hint" && question && (
         <div className="mc-card-dark space-y-4">
-          <p className="font-pixel text-xs text-gold">Hint time!</p>
+          <p className="font-pixel text-xs text-gold">Tricky one — here&apos;s a clue 💡</p>
           <p className="text-sm text-paper/80">{hintLead}</p>
           <p className="text-lg font-semibold leading-snug text-paper/90">{question.prompt}</p>
           <p className="rounded-lg border-2 border-gold/40 bg-gold/10 p-3 text-sm text-paper/90">
@@ -977,13 +1021,21 @@ export default function Quiz({
               <div className="text-5xl">💪</div>
             )}
             <p className="mt-2 font-pixel text-sm text-grasstop">
-              {result.verdict === "correct"
-                ? "Correct!"
-                : result.verdict === "partial"
-                  ? "Got it!"
-                  : result.verdict === "timeout"
-                    ? "Out of time"
-                    : "Not quite"}
+              {(() => {
+                const won =
+                  result.verdict === "correct" || (result.verdict === "partial" && result.secondTry);
+                const d = question?.difficulty || 0;
+                if (won && d >= 11) return "⚔️ BOSS DEFEATED!";
+                if (won && d >= 9) return "🔥 EPIC WIN!";
+                if (won && d >= 7) return "💥 Smashed it!";
+                return result.verdict === "correct"
+                  ? "Correct!"
+                  : result.verdict === "partial"
+                    ? "Got it!"
+                    : result.verdict === "timeout"
+                      ? "Out of time"
+                      : "Not quite";
+              })()}
             </p>
           </div>
 
@@ -1028,7 +1080,7 @@ export default function Quiz({
 
       {phase === "between" && (
         <div className="mc-card-dark space-y-4 text-center">
-          <p className="font-pixel text-xs text-grasstop">{meta?.label} complete!</p>
+          <p className="font-pixel text-xs text-grasstop">{meta?.label} quest cleared! 🎉</p>
           <FunIllustration index={funIdx} />
           <div className="text-3xl">
             {(() => {
