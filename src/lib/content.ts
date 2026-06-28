@@ -344,6 +344,23 @@ const FRENCH_BANK: Array<[string, string, string[], string]> = [
 ];
 
 function frenchQuestion(level: number, task = ""): Question {
+  // At hard bands the "vocab" slot becomes a small listening/comprehension task
+  // rather than single-word recall, so even offline it isn't trivial at Expert.
+  if (task === "vocab" && level >= 7) {
+    const [fr, en] = choice(FRENCH_COMPREHENSION);
+    return q({
+      type: "short_text",
+      topic: "comprehension",
+      skill: "understanding French",
+      difficulty: level,
+      prompt: `What does this mean in English?\n"${fr}"`,
+      answer: en,
+      audioText: fr,
+      audioLanguage: "fr-FR",
+      hint: "Listen for the number and the thing they want.",
+      solution: `It means: ${en}`,
+    });
+  }
   // Vocabulary: five French words at once, marked by how many meanings are right.
   if (task === "vocab") {
     const pool = [...FRENCH_BANK].sort(() => Math.random() - 0.5).slice(0, 5);
@@ -430,6 +447,18 @@ const FRENCH_SENTENCE: Array<[string, string]> = [
   ["Fais une phrase avec le mot « école ».", "Je vais à l'école."],
   ["Écris une phrase sur ce que tu aimes.", "J'aime jouer au football."],
   ["Fais une phrase avec le mot « pomme ».", "Je mange une pomme."],
+];
+
+// Short real-life French sentences with their English meaning, for hard-band
+// listening/comprehension questions (each has a number and an item).
+const FRENCH_COMPREHENSION: Array<[string, string]> = [
+  ["Je voudrais un croissant, s'il vous plaît.", "I would like one croissant, please."],
+  ["Je voudrais deux pommes et un pain.", "I would like two apples and one bread."],
+  ["J'ai trois chats et un chien.", "I have three cats and one dog."],
+  ["Je voudrais un verre d'eau, s'il vous plaît.", "I would like a glass of water, please."],
+  ["Il y a quatre enfants dans la classe.", "There are four children in the class."],
+  ["Je voudrais une glace au chocolat, s'il vous plaît.", "I would like a chocolate ice cream, please."],
+  ["Le petit chien mange deux biscuits.", "The little dog eats two biscuits."],
 ];
 
 // --------------------------------------------------------------------------- //

@@ -41,6 +41,11 @@ export interface Question {
   // French vocabulary task: the prompt asks for several meanings at once and the
   // answer is a comma-separated list; marking is by how many are correct.
   expectMulti?: boolean;
+  // The model's self-assessment, used to validate that a question is as hard as
+  // the level it will be shown at (not stored, just used at generation time).
+  questionType?: string;
+  levelEstimate?: number;
+  whyHard?: string;
 }
 
 // The full child profile row (Supabase `profiles` table).

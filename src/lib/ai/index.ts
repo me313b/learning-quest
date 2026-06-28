@@ -233,6 +233,9 @@ function parseQuestion(raw: string, subject: string, difficulty: number): Questi
     displayText: typeof d.displayText === "string" ? d.displayText : undefined,
     listening: Boolean(d.listening),
     expectMulti: Boolean(d.expectMulti),
+    questionType: typeof d.questionType === "string" ? d.questionType : undefined,
+    levelEstimate: d.levelEstimate == null ? undefined : Number(d.levelEstimate),
+    whyHard: typeof d.whyHard === "string" ? d.whyHard : undefined,
   };
   return validateQuestion(q) ? q : null;
 }
@@ -247,6 +250,26 @@ function validateQuestion(q: Question): boolean {
   }
   // Numeric questions must carry an answer; open writing may legitimately have none.
   if (q.type === "numeric" && q.answer.trim() === "") return false;
+  return true;
+}
+
+/** At hard levels (Advanced/Expert), reject questions that are really just quick
+ *  recall, so the displayed difficulty is honest. We combine a few obvious
+ *  give-away patterns with the model's own self-rating as a second signal. */
+function meetsDifficultyBar(q: Question, difficulty: number): boolean {
+  if (Math.round(difficulty) < 7) return true;
+  const p = `${q.displayText || ""} ${q.prompt || ""}`.toLowerCase();
+  const recall = [
+    /which (?:french )?word means/,
+    /what is the (?:french )?word for/,
+    /how do you say ['"][^'"]{1,16}['"] in french/,
+    /\bwhich word means\b/,
+  ];
+  if (recall.some((re) => re.test(p))) return false;
+  if ((q.questionType || "").toLowerCase() === "recall") return false;
+  // If the model itself rates this much easier than the level we're asking for.
+  const est = Number(q.levelEstimate);
+  if (!Number.isNaN(est) && est > 0 && est < difficulty - 3) return false;
   return true;
 }
 
@@ -279,19 +302,25 @@ export async function generateQuestion(
     worksheet,
     frenchTask,
   );
-  // Try twice: models occasionally return malformed JSON or a question that
-  // doesn't fit its type. One retry fixes nearly all of these; if both fail the
-  // caller falls back to the offline question bank.
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Try a few times: models occasionally return malformed JSON, a question that
+  // doesn't fit its type, or — at hard levels — something too easy for the label.
+  // We keep the first usable question as a backstop but prefer one that clears the
+  // difficulty bar, giving hard levels more attempts to land a genuinely hard task.
+  const maxAttempts = Math.round(difficulty) >= 7 ? 4 : 2;
+  let best: Question | null = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const raw = await chat(provider, apiKey, model, QGEN_SYSTEM, user, { maxTokens: 900 });
       const q = parseQuestion(raw, subject, difficulty);
-      if (q) return q;
+      if (q) {
+        if (meetsDifficultyBar(q, difficulty)) return q;
+        if (!best) best = q;
+      }
     } catch {
       /* try again */
     }
   }
-  return null;
+  return best;
 }
 
 // --------------------------------------------------------------------------- //

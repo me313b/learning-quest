@@ -110,30 +110,52 @@ export function buildQuestionUser(
 
   // French quest: ONE task type per question across the set, chosen by the caller
   // (frenchTask) — never "what does this word mean?" every time. The child answers
-  // by typing or speaking; multiple choice is for the printed worksheet only.
-  const frenchVocab =
-    '"type" must be "short_text" and you MUST set "expectMulti": true. Give FIVE French words or very ' +
-    "short phrases suitable for the band, numbered 1-5 in the prompt, and VARY the theme (animals, " +
-    "colours, food, family, numbers, school, actions). Ask the child for the ENGLISH meaning of ALL " +
-    'FIVE, written on one line separated by commas. Put the five English meanings in "answer" as a ' +
-    'comma-separated list IN THE SAME ORDER as the words. Put ONLY the five French words in "audioText".';
-  const frenchInterview =
-    '"type" must be "short_text". Ask ONE friendly, real INTERVIEW question in simple French that the ' +
-    "child answers in French — about their name, age, family, pets, or a favourite colour/food/animal, " +
-    'or what they did today (e.g. "Comment t\'appelles-tu ?", "Quel est ton animal préféré ?"). Put the ' +
-    'French question in "audioText". Give a short, natural model answer in French in "answer" as a guide ' +
-    "only; any sensible French reply is acceptable.";
-  const frenchSentence =
-    '"type" must be "short_text". Ask the child to MAKE their own short French sentence — using a given ' +
-    'French word, or about a small topic (e.g. "Fais une phrase avec le mot « chat ».", "Écris une ' +
-    'phrase sur ta famille."). Put the French instruction in "audioText". Give a correct model sentence ' +
-    'in "answer" as a guide only; any sensible, well-formed French sentence is acceptable.';
-  const frenchTranslate =
-    '"type" must be "short_text". Show a short ENGLISH sentence for the child to put INTO French (KEEP ' +
-    'that sentence in English, e.g. "I am happy", "The cat is black", "I would like an apple"); the ' +
-    'child produces the French. Put the French in "answer" with variants in "acceptable". Set ' +
-    '"audioText" to "" so the answer is never spoken and English is never read aloud. Scale the ' +
-    "sentence length with the band.";
+  // by typing or speaking; multiple choice is for the printed worksheet only. At
+  // hard bands (Advanced/Expert) each task becomes genuinely sophisticated.
+  const fhard = Math.round(difficulty) >= 7;
+  const frenchVocab = fhard
+    ? '"type" must be "short_text". This is a LISTENING / UNDERSTANDING task, NOT single-word recall. ' +
+      "Give ONE short, natural French sentence from real life (a café or shop request, or a daily " +
+      "routine) and ask what the person MEANS or WANTS, answered in English. Include a number and an " +
+      'item where you can (e.g. "Je voudrais un croissant et deux pommes."). Put the French sentence in ' +
+      'BOTH the prompt and "audioText" so it can be heard. Put the English meaning in "answer".'
+    : '"type" must be "short_text" and you MUST set "expectMulti": true. Give FIVE French words or very ' +
+      "short phrases suitable for the band, numbered 1-5 in the prompt, and VARY the theme (animals, " +
+      "colours, food, family, numbers, school, actions). Ask the child for the ENGLISH meaning of ALL " +
+      'FIVE, written on one line separated by commas. Put the five English meanings in "answer" as a ' +
+      'comma-separated list IN THE SAME ORDER as the words. Put ONLY the five French words in "audioText".';
+  const frenchInterview = fhard
+    ? '"type" must be "short_text". Give a SHORT real-life French mini-scene and ask the child to reply ' +
+      'in French with a suitable POLITE sentence (e.g. someone says "Bonjour, qu\'est-ce que tu veux ?" ' +
+      'and the child answers; or "Tu es à la boulangerie — demande poliment un pain au chocolat."). Put ' +
+      'the French they hear in "audioText". Give a natural model reply in French in "answer" as a guide; ' +
+      "any sensible, polite French reply is acceptable."
+    : '"type" must be "short_text". Ask ONE friendly, real INTERVIEW question in simple French that the ' +
+      "child answers in French — about their name, age, family, pets, or a favourite colour/food/animal, " +
+      'or what they did today (e.g. "Comment t\'appelles-tu ?", "Quel est ton animal préféré ?"). Put the ' +
+      'French question in "audioText". Give a short, natural model answer in French in "answer" as a guide ' +
+      "only; any sensible French reply is acceptable.";
+  const frenchSentence = fhard
+    ? '"type" must be "short_text". Choose ONE of: (a) SENTENCE BUILDING — give 4-6 French words in a ' +
+      'JUMBLED order and ask the child to write them in the correct order to make a proper sentence ' +
+      '(e.g. "voudrais / un / je / croissant"); put the correct sentence in "answer" and set "audioText" ' +
+      'to "". (b) SPOT THE MISTAKE — give a French sentence with ONE clear error (e.g. "Je voudrais deux ' +
+      'croissant.") and ask the child to write it correctly; put the corrected sentence in "answer" and ' +
+      'set "audioText" to "" (show the sentence in the prompt; never read a wrong sentence aloud).'
+    : '"type" must be "short_text". Ask the child to MAKE their own short French sentence — using a given ' +
+      'French word, or about a small topic (e.g. "Fais une phrase avec le mot « chat ».", "Écris une ' +
+      'phrase sur ta famille."). Put the French instruction in "audioText". Give a correct model sentence ' +
+      'in "answer" as a guide only; any sensible, well-formed French sentence is acceptable.';
+  const frenchTranslate = fhard
+    ? '"type" must be "short_text". Set a REAL-LIFE SCENARIO (a café, bakery, shop, school, or visiting ' +
+      "family) in one short ENGLISH sentence, then ask the child to write what they would POLITELY say in " +
+      'French — usually involving a number and an item (e.g. "You are in a café and want one croissant ' +
+      'and one glass of water. Write what you would say."). Keep the scenario in English. Put the model ' +
+      'French in "answer" with sensible variants in "acceptable". Set "audioText" to "".'
+    : '"type" must be "short_text". Show a short ENGLISH sentence for the child to put INTO French (KEEP ' +
+      'that sentence in English, e.g. "I am happy", "The cat is black", "I would like an apple"); the ' +
+      'child produces the French. Put the French in "answer" with variants in "acceptable". Set ' +
+      '"audioText" to "" so the answer is never spoken and English is never read aloud.';
   const frenchRule =
     frenchTask === "vocab"
       ? frenchVocab
@@ -142,6 +164,17 @@ export function buildQuestionUser(
         : frenchTask === "sentence"
           ? frenchSentence
           : frenchTranslate;
+
+  // At hard bands the question must be a genuine THINKING task, never quick recall.
+  const richnessBlock = fhard
+    ? "\nDEPTH (this is a hard level — it MUST feel hard): make this a RICH thinking task, never simple " +
+      "recall or a one-step answer. It must need at least TWO thinking steps OR a real-life scenario. Do " +
+      "NOT write anything answerable in one second from memory — no \"which word means…\", no bare " +
+      "\"what is X + Y\". Use the STYLE of rich educational tasks (reasoning, pattern-spotting, working " +
+      "backwards, real-life context, prediction and testing, sentence-building, mistake-spotting), in the " +
+      "spirit of NRICH, White Rose Maths, Oak National Academy and BBC Bitesize — for STYLE and depth " +
+      "only, NEVER copying. Any wrong options must be genuinely tempting, not random."
+    : "";
 
   let formatRule: string;
   if (worksheet) formatRule = worksheetRule;
@@ -196,7 +229,7 @@ ${focusLine}
 ${coverageLine}
 ${themeLine}
 ${langLine}${frenchAudio}
-Avoid these recently-used topics: ${recent}.${avoidLine}${mathsExtra}
+Avoid these recently-used topics: ${recent}.${avoidLine}${mathsExtra}${richnessBlock}
 
 CHALLENGE: aim HIGH for the band — a multi-step word problem, a two-step calculation, a comparison,
 a pattern, or a "what comes next" with a twist, not a trivial one-liner. It should make a bright
@@ -221,7 +254,10 @@ Return JSON with EXACTLY these keys:
   "acceptable": ["other acceptable answers if any"],
   "tolerance": 0,
   "hint": "a nudge that does NOT reveal the answer",
-  "solution": "a short, clear, encouraging explanation (one or two lines)"
+  "solution": "a short, clear, encouraging explanation (one or two lines)",
+  "questionType": "one of: recall | routine | reasoning | scenario | listening | sentence-building | mistake-spotting",
+  "levelEstimate": "your honest estimate of THIS question's difficulty from 1 (very easy) to 15 (hardest)",
+  "whyHard": "one short line: why this question fits the level asked for"
 }
 No multiple-choice option may be obviously silly. "options" must be [] unless the type is multiple_choice.`;
 }
