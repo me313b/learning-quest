@@ -90,3 +90,38 @@ end $$;
 drop trigger if exists phet_activity_set_owner on public.phet_activity_log;
 create trigger phet_activity_set_owner before insert on public.phet_activity_log
   for each row execute function public.set_owner();
+
+-- 4) More parent controls (timer, voice, fun) -----------------------------
+-- All optional with sensible defaults; the app works without them.
+alter table public.account_settings add column if not exists question_seconds integer default 60;
+alter table public.account_settings add column if not exists allow_overtime boolean default true;
+alter table public.account_settings add column if not exists tts_voice text default 'coral';
+alter table public.account_settings add column if not exists fun_mode boolean default true;
+
+-- 5) Weekly spelling/dictation --------------------------------------------
+alter table public.account_settings add column if not exists spelling_words text[] default '{}';
+alter table public.account_settings add column if not exists dictation_pause integer default 4;
+alter table public.account_settings add column if not exists dictation_confirm boolean default false;
+alter table public.account_settings add column if not exists dictation_length text default 'short';
+alter table public.account_settings add column if not exists dictation_difficulty text default 'easy';
+
+create table if not exists public.dictation_log (
+  id          uuid primary key default gen_random_uuid(),
+  owner       uuid not null references auth.users(id) on delete cascade,
+  profile_id  uuid not null references public.profiles(id) on delete cascade,
+  score       integer default 0,
+  total       integer default 0,
+  words       text[] default '{}',
+  created_at  timestamptz not null default now()
+);
+create index if not exists dictation_profile_idx on public.dictation_log (profile_id, created_at desc);
+alter table public.dictation_log enable row level security;
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='dictation_log' and policyname='own dictation') then
+    create policy "own dictation" on public.dictation_log for all using (auth.uid() = owner) with check (auth.uid() = owner);
+  end if;
+end $$;
+drop trigger if exists dictation_set_owner on public.dictation_log;
+create trigger dictation_set_owner before insert on public.dictation_log
+  for each row execute function public.set_owner();
