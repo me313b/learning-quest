@@ -113,17 +113,29 @@ export function buildQuestionUser(
   // by typing or speaking; multiple choice is for the printed worksheet only. At
   // hard bands (Advanced/Expert) each task becomes genuinely sophisticated.
   const fhard = Math.round(difficulty) >= 7;
+  // The vocabulary slot goes BOTH ways at random: sometimes French to English,
+  // sometimes English to French (the child writes the French).
+  const vocabFr2En =
+    '"type" must be "short_text" and you MUST set "expectMulti": true. Give FIVE French words or very ' +
+    "short phrases suitable for the band, numbered 1-5 in the prompt, and VARY the theme (animals, " +
+    "colours, food, family, numbers, school, actions). Ask the child for the ENGLISH meaning of ALL " +
+    'FIVE, written on one line separated by commas. Put the five English meanings in "answer" as a ' +
+    'comma-separated list IN THE SAME ORDER as the words. Put ONLY the five French words in "audioText".';
+  const vocabEn2Fr =
+    '"type" must be "short_text" and you MUST set "expectMulti": true. Give FIVE ENGLISH words or very ' +
+    "short phrases suitable for the band, numbered 1-5 in the prompt, and VARY the theme (animals, " +
+    "colours, food, family, numbers, school, actions). Ask the child to write the FRENCH for ALL FIVE, " +
+    'on one line separated by commas. Put the five French words in "answer" as a comma-separated list IN ' +
+    'THE SAME ORDER as the English words. Set "audioText" to "" (do not read the French answers aloud).';
   const frenchVocab = fhard
     ? '"type" must be "short_text". This is a LISTENING / UNDERSTANDING task, NOT single-word recall. ' +
       "Give ONE short, natural French sentence from real life (a café or shop request, or a daily " +
       "routine) and ask what the person MEANS or WANTS, answered in English. Include a number and an " +
       'item where you can (e.g. "Je voudrais un croissant et deux pommes."). Put the French sentence in ' +
       'BOTH the prompt and "audioText" so it can be heard. Put the English meaning in "answer".'
-    : '"type" must be "short_text" and you MUST set "expectMulti": true. Give FIVE French words or very ' +
-      "short phrases suitable for the band, numbered 1-5 in the prompt, and VARY the theme (animals, " +
-      "colours, food, family, numbers, school, actions). Ask the child for the ENGLISH meaning of ALL " +
-      'FIVE, written on one line separated by commas. Put the five English meanings in "answer" as a ' +
-      'comma-separated list IN THE SAME ORDER as the words. Put ONLY the five French words in "audioText".';
+    : Math.random() < 0.5
+      ? vocabFr2En
+      : vocabEn2Fr;
   const frenchInterview = fhard
     ? '"type" must be "short_text". Give a SHORT real-life French mini-scene and ask the child to reply ' +
       'in French with a suitable POLITE sentence (e.g. someone says "Bonjour, qu\'est-ce que tu veux ?" ' +

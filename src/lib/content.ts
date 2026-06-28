@@ -361,24 +361,42 @@ function frenchQuestion(level: number, task = ""): Question {
       solution: `It means: ${en}`,
     });
   }
-  // Vocabulary: five French words at once, marked by how many meanings are right.
+  // Vocabulary: five words at once, marked by how many are right. Goes both ways.
   if (task === "vocab") {
     const pool = [...FRENCH_BANK].sort(() => Math.random() - 0.5).slice(0, 5);
-    const lines = pool.map(([en, fr], i) => `${i + 1}) ${fr}`).join("   ");
-    const answers = pool.map(([en]) => en).join(", ");
-    const frWords = pool.map(([, fr]) => fr).join(", ");
+    if (Math.random() < 0.5) {
+      // French -> English
+      const lines = pool.map(([, fr], i) => `${i + 1}) ${fr}`).join("   ");
+      const answers = pool.map(([en]) => en).join(", ");
+      const frWords = pool.map(([, fr]) => fr).join(", ");
+      return q({
+        type: "short_text",
+        topic: "vocabulary",
+        skill: "French vocabulary",
+        difficulty: level,
+        prompt: `What do these five French words mean? Write all five in English, separated by commas.\n${lines}`,
+        answer: answers,
+        audioText: frWords,
+        audioLanguage: "fr-FR",
+        expectMulti: true,
+        hint: "Say each one out loud — some sound like the English word.",
+        solution: `The meanings are: ${answers}.`,
+      });
+    }
+    // English -> French (the child writes the French)
+    const lines = pool.map(([en], i) => `${i + 1}) ${en}`).join("   ");
+    const answers = pool.map(([, fr]) => fr).join(", ");
     return q({
       type: "short_text",
       topic: "vocabulary",
       skill: "French vocabulary",
       difficulty: level,
-      prompt: `What do these five French words mean? Write all five in English, separated by commas.\n${lines}`,
+      prompt: `Write these five words in French, separated by commas.\n${lines}`,
       answer: answers,
-      audioText: frWords,
-      audioLanguage: "fr-FR",
+      audioText: "",
       expectMulti: true,
-      hint: "Say each one out loud — some sound like the English word.",
-      solution: `The meanings are: ${answers}.`,
+      hint: "Think of the French word you have learned for each one.",
+      solution: `In French: ${answers}.`,
     });
   }
   // Translate a short English sentence into French (answer hidden, never spoken).

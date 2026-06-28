@@ -462,7 +462,13 @@ export default function Quiz({
 
     // Five-word vocabulary: mark by how many of the meanings are right.
     if (q.expectMulti) {
-      const normItem = (x: string) => x.toLowerCase().replace(/[^a-z0-9' ]/g, "").trim();
+      const normItem = (x: string) =>
+        x
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9' ]/g, "")
+          .trim();
       const match1 = (a: string, b: string) => {
         const x = normItem(a);
         const y = normItem(b);

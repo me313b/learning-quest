@@ -99,6 +99,7 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   { id: "physics-aviary", title: "The Physics Aviary", emoji: "🦅", description: "Physics games, labs and problem simulators.", provider: "The Physics Aviary", credit: "The Physics Aviary (thephysicsaviary.com)", category: "science", url: "https://www.thephysicsaviary.com/Physics/singextentprograms.php" },
   { id: "climate-kids", title: "NASA Climate Kids", emoji: "🌎", description: "Games and activities about Earth and space.", provider: "NASA", credit: "NASA Climate Kids (climatekids.nasa.gov)", category: "science", url: "https://climatekids.nasa.gov/" },
   { id: "ducksters-science", title: "Ducksters Science", emoji: "🔭", description: "Easy-to-read science articles and quizzes.", provider: "Ducksters", credit: DUCKSTERS_CREDIT, category: "science", url: "https://www.ducksters.com/science/" },
+  { id: "explorify", title: "Explorify", emoji: "🔎", description: "Think-like-a-scientist activities — Odd One Out, Zoom In, What If and big questions. Free sign-up.", provider: "Explorify", credit: "Explorify — Wellcome / PSTT / STEM Learning (explorify.uk)", category: "science", url: "https://explorify.uk/" },
 
   // ---- GEOGRAPHY (new tab) --------------------------------------------------
   { id: "natgeo-kids", title: "Nat Geo Kids", emoji: "🌐", description: "Countries, animals and amazing places around the world.", provider: "National Geographic Kids", credit: "National Geographic Kids (kids.nationalgeographic.com)", category: "geography", url: "https://kids.nationalgeographic.com/" },
