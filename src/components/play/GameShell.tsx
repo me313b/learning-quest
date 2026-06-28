@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getKidSettings, getProfile, getRewardSettings, getTodaySession, todayAttempts } from "@/lib/data";
+import { getKidSettings, getProfile, getRewardSettings, getTodaySession, recentSessions, todayAttempts, todayStr } from "@/lib/data";
 import {
-  availableSecondsToday,
   earnedSecondsFromAttempts,
+  lifetimeAvailableSeconds,
 } from "@/lib/rewards";
 import { AVATARS, CORE_SUBJECTS } from "@/lib/config";
 import { installAudioUnlock, isMusicOn, startMusic, stopMusic, toggleMusic } from "@/lib/music";
@@ -35,6 +35,7 @@ export default function GameShell({ profileId }: { profileId: string }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [session, setSession] = useState<Session | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [view, setView] = useState<View>("welcome");
   const [subjects, setSubjects] = useState<string[]>([]);
   const [language, setLanguage] = useState<"en" | "fr">("en");
@@ -52,6 +53,11 @@ export default function GameShell({ profileId }: { profileId: string }) {
         setSession(await getTodaySession(profileId));
       } catch {
         setSession(null);
+      }
+      try {
+        setSessions(await recentSessions(profileId, 120));
+      } catch {
+        setSessions([]);
       }
       try {
         setRewardCfg(await getRewardSettings());
@@ -104,9 +110,11 @@ export default function GameShell({ profileId }: { profileId: string }) {
   const cfg = { perCorrectMin: rewardCfg.perCorrect, capMin: rewardCfg.dailyCap };
   const earnedSec = earnedSecondsFromAttempts(attempts, cfg);
   const watchedSec = Math.round((session?.minutes_used || 0) * 60);
-  const bonusSec = Math.round((session?.bonus_minutes || 0) * 60);
+  // Running balance across all days, so earned-but-unwatched minutes carry over
+  // instead of resetting each morning. Make sure today's row is included.
+  const allSessions = session ? [session, ...sessions.filter((s) => s.id !== session.id)] : sessions;
   const availableSec = Math.round(
-    availableSecondsToday(earnedSec, watchedSec, { capMin: rewardCfg.dailyCap, bonusSeconds: bonusSec }),
+    lifetimeAvailableSeconds(allSessions, todayStr(), earnedSec, { capMin: rewardCfg.dailyCap }),
   );
   const availableMin = Math.round((availableSec / 60) * 10) / 10;
 

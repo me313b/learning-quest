@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { attemptsForProfile, deleteProfile, dictationForProfile, grantBonusMinutes, listProfiles, phetActivityForProfile, recentSessions, type DictationRecord } from "@/lib/data";
+import { attemptsForProfile, deleteProfile, dictationForProfile, grantBonusMinutes, listProfiles, phetActivityForProfile, recentSessions, setBonusMinutes, type DictationRecord } from "@/lib/data";
 import {
   dailyAccuracy,
   difficultyTrend,
@@ -140,6 +140,15 @@ export default function Dashboard() {
   }
 
   const [customMin, setCustomMin] = useState("15");
+
+  async function resetBonus() {
+    if (!selected) return;
+    setGrantingBonus(true);
+    setBonusMsg("");
+    const res = await setBonusMinutes(selected.id, 0);
+    setBonusMsg(res === null ? "Couldn't update — run RUN-THIS-IN-SUPABASE.sql once." : "Today's adjustment has been reset to zero.");
+    setGrantingBonus(false);
+  }
 
   const stats = useMemo(() => overallStats(attempts), [attempts]);
   const trend = useMemo(() => difficultyTrend(attempts), [attempts]);
@@ -374,7 +383,7 @@ export default function Dashboard() {
               +10 min
             </button>
             <button
-              onClick={() => giveBonus(-9999)}
+              onClick={resetBonus}
               disabled={grantingBonus}
               className="rounded-lg border-2 border-black/40 bg-black/25 px-3 py-1.5 text-sm text-paper/80 disabled:opacity-50"
             >

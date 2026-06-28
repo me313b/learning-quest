@@ -10,6 +10,8 @@ import Conversation from "../french/Conversation";
 import PictureNaming from "../french/PictureNaming";
 import SentenceBuilder from "../french/SentenceBuilder";
 import SpellingLab from "../SpellingLab";
+import ExternalLibrary from "../explore/ExternalLibrary";
+import FunFactsLab from "../FunFactsLab";
 import GeneratedLab from "../GeneratedLab";
 import PhysicsLab from "../PhysicsLab";
 import PhetLibrary from "../phet/PhetLibrary";
@@ -651,7 +653,7 @@ const LAB_CARDS: { id: LabId; title: string; emoji: string; blurb: string; tint:
   { id: "music", title: "Music Maker", emoji: "🎵", blurb: "Tap note blocks to make tunes", tint: C.gold },
 ];
 
-type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "surprise" | "physics" | "science" | null;
+type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "explore" | "facts" | "surprise" | "physics" | "science" | null;
 
 export default function InteractiveLabs({ onExit, profileId }: { onExit: () => void; profileId: string }) {
   const [view, setView] = useState<View>(null);
@@ -672,6 +674,8 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
   if (view === "fr-name") return <PictureNaming onBack={() => setView(null)} />;
   if (view === "fr-build") return <SentenceBuilder onBack={() => setView(null)} />;
   if (view === "spelling") return <SpellingLab onBack={() => setView(null)} profileId={profileId} />;
+  if (view === "explore") return <ExternalLibrary onBack={() => setView(null)} />;
+  if (view === "facts") return <FunFactsLab onBack={() => setView(null)} />;
   if (view === "surprise" && surprise) return <GeneratedLab subject={surprise} onBack={() => setView(null)} />;
 
   return (
@@ -789,6 +793,32 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
           <div className="text-[11px] text-paper/60">Listen and write this week&apos;s words, then get them checked</div>
         </div>
       </button>
+
+      {/* Explore more + fun facts */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <button
+          onClick={() => setView("explore")}
+          className="flex items-center gap-3 rounded-2xl border-4 border-diamond/50 p-3 text-left shadow-pixel"
+          style={{ background: "linear-gradient(160deg, rgba(124,92,224,0.24), rgba(20,16,28,0.96))" }}
+        >
+          <span className="text-3xl">🌍</span>
+          <div>
+            <div className="font-pixel text-[11px] text-diamond">Explore more labs</div>
+            <div className="text-[11px] text-paper/60">Music, maths, science, coding &amp; reading</div>
+          </div>
+        </button>
+        <button
+          onClick={() => setView("facts")}
+          className="flex items-center gap-3 rounded-2xl border-4 border-gold/50 p-3 text-left shadow-pixel"
+          style={{ background: "linear-gradient(160deg, rgba(242,178,51,0.2), rgba(20,16,28,0.96))" }}
+        >
+          <span className="text-3xl">💡</span>
+          <div>
+            <div className="font-pixel text-[11px] text-gold2">Fun Facts</div>
+            <div className="text-[11px] text-paper/60">Amazing facts, read aloud</div>
+          </div>
+        </button>
+      </div>
 
       {/* Optional AI surprise */}
       <button

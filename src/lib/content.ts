@@ -445,3 +445,152 @@ export function fallbackQuestion(
       return mathsQuestion(level);
   }
 }
+
+// --- Categorised fun facts for the Fun Facts lab ---------------------------
+export interface FactCategory {
+  id: string;
+  label: string;
+  emoji: string;
+  facts: string[];
+}
+
+export const FACT_CATEGORIES: FactCategory[] = [
+  {
+    id: "animals",
+    label: "Animals",
+    emoji: "🐾",
+    facts: [
+      "A group of flamingos is called a flamboyance.",
+      "Octopuses have three hearts and blue blood.",
+      "A snail can sleep for up to three years.",
+      "Sea otters hold hands while they sleep so they don't float apart.",
+      "A shrimp's heart is in its head.",
+      "Cows have best friends and get upset when they are apart.",
+      "Sloths can hold their breath longer than dolphins can.",
+      "A hummingbird can flap its wings about fifty times every second.",
+      "Elephants are the only animals that can't jump.",
+      "A blue whale's heart is so big a small child could crawl through its blood vessels.",
+      "Penguins propose to each other with a pebble.",
+      "Butterflies taste with their feet.",
+      "A group of owls is called a parliament.",
+      "Crocodiles cannot stick their tongues out.",
+      "Honeybees can recognise human faces.",
+      "A starfish has no brain and no blood.",
+      "Tigers have striped skin, not just striped fur.",
+      "Frogs drink water through their skin instead of their mouths.",
+    ],
+  },
+  {
+    id: "space",
+    label: "Space",
+    emoji: "🚀",
+    facts: [
+      "A day on Venus is longer than its whole year.",
+      "There are more stars in the universe than grains of sand on every beach on Earth.",
+      "Footprints left on the Moon will stay for millions of years because there is no wind.",
+      "The Sun is so big that about one million Earths could fit inside it.",
+      "Saturn would float if you could find a bathtub big enough, because it's so light for its size.",
+      "Space is completely silent because there is no air to carry sound.",
+      "A spoonful of a neutron star would weigh about a billion tonnes.",
+      "Jupiter has a storm bigger than the whole Earth that has lasted for hundreds of years.",
+      "It takes sunlight about eight minutes to travel all the way to Earth.",
+      "There is a planet made largely of diamond-like carbon.",
+      "The Moon is slowly drifting away from Earth, a few centimetres every year.",
+      "Astronauts can grow a little taller in space because their spines stretch out.",
+      "Mars has the tallest volcano in the solar system, about three times higher than Mount Everest.",
+      "One year on Neptune lasts about 165 Earth years.",
+      "Shooting stars are usually tiny specks of dust burning up in the sky.",
+    ],
+  },
+  {
+    id: "body",
+    label: "Your Body",
+    emoji: "🧠",
+    facts: [
+      "Your body has enough blood vessels to wrap around the Earth more than twice.",
+      "You are a tiny bit taller in the morning than at night.",
+      "Your nose can remember about fifty thousand different smells.",
+      "The strongest muscle in your body for its size is the one you chew with.",
+      "Your heart beats about 100,000 times every single day.",
+      "You blink about twenty thousand times a day.",
+      "Babies are born with around 300 bones, but adults have 206 because some join together.",
+      "Your brain uses about a fifth of all the energy your body makes.",
+      "The tiny bones in your ear are the smallest bones in your body.",
+      "Your stomach gets a brand new lining every few days so it doesn't digest itself.",
+      "If you stretched out all the wrinkles in your brain, it would be about the size of a pillowcase.",
+      "You can't tickle yourself because your brain knows it's coming.",
+      "Your fingernails grow faster than your toenails.",
+      "Sneezes can shoot out of your nose faster than a car drives on the motorway.",
+      "Your taste buds are replaced every couple of weeks.",
+    ],
+  },
+  {
+    id: "science",
+    label: "Science",
+    emoji: "🔬",
+    facts: [
+      "Honey never goes bad. Honey found in ancient tombs was still good to eat.",
+      "Hot water can sometimes freeze faster than cold water.",
+      "Lightning is hotter than the surface of the Sun.",
+      "Bananas are slightly radioactive, but far too little to hurt you.",
+      "A bolt of lightning could toast about 100,000 slices of bread.",
+      "Glass is made mostly from melted sand.",
+      "Water is the only thing on Earth found naturally as a solid, a liquid and a gas.",
+      "Rubber bands last longer when you keep them in the fridge.",
+      "Sound travels about four times faster in water than in air.",
+      "A rainbow is actually a full circle, but the ground hides the bottom half.",
+      "If you could fold a piece of paper 42 times, it would reach the Moon.",
+      "Metals can be 'glued' together in space just by touching, with no heat needed.",
+      "Some metals are so light they would float on water.",
+      "The air you breathe is mostly nitrogen, not oxygen.",
+      "Static electricity is the same kind of spark as lightning, just much smaller.",
+    ],
+  },
+  {
+    id: "world",
+    label: "Our World",
+    emoji: "🌍",
+    facts: [
+      "The Eiffel Tower can grow about 15 centimetres taller on a hot day.",
+      "There is a place in Norway where the sun doesn't set for weeks in summer.",
+      "The Great Barrier Reef is the largest living thing on Earth.",
+      "Antarctica is the largest desert in the world, even though it's covered in ice.",
+      "Some of the oldest trees alive today are over four thousand years old.",
+      "The Amazon rainforest makes a huge amount of the world's oxygen.",
+      "Mount Everest grows a tiny bit taller each year as the Earth pushes it up.",
+      "The Pacific Ocean is so big it could hold all the land on Earth with room to spare.",
+      "Iceland has no mosquitoes at all.",
+      "The Sahara desert can get cold enough to snow.",
+      "A single bolt of the Amazon River carries more water than the next several biggest rivers combined.",
+      "There are more trees on Earth than stars you can see in the night sky.",
+      "The deepest part of the ocean is deeper than Mount Everest is tall.",
+      "Lake Baikal holds about a fifth of all the fresh water on the planet.",
+      "Some sand dunes can 'sing' a low humming sound as the sand slides.",
+    ],
+  },
+  {
+    id: "numbers",
+    label: "Numbers & Maths",
+    emoji: "🔢",
+    facts: [
+      "Zero is the only number that can't be written in Roman numerals.",
+      "A 'googol' is a 1 with one hundred zeros after it.",
+      "If you add up all the numbers from 1 to 100, you get 5,050.",
+      "The number 4 is the only number with the same number of letters as its value in English.",
+      "Honeycomb cells are hexagons because that shape uses the least wax for the most space.",
+      "Multiplying any number by 9 and adding the digits always gives 9.",
+      "A circle has an endless number of corners, or none at all, depending on how you look.",
+      "The word 'hundred' comes from an old word that actually meant 120.",
+      "There are exactly 60 minutes in an hour because of counting used thousands of years ago.",
+      "Palindrome numbers read the same forwards and backwards, like 1221.",
+      "Every odd number has the letter 'e' in its English spelling.",
+      "A 'baker's dozen' is 13, not 12.",
+      "The plus and minus signs are over five hundred years old.",
+      "Counting all the ways to shuffle a deck of cards gives a number bigger than the seconds since the universe began.",
+    ],
+  },
+];
+
+export function factsForCategory(id: string): string[] {
+  return FACT_CATEGORIES.find((c) => c.id === id)?.facts || [];
+}

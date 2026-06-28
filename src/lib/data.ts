@@ -583,3 +583,17 @@ export async function recentWrongAttempts(
     return [];
   }
 }
+
+// Set today's bonus minutes to an exact value (used by the parent "Reset" so it
+// lands on zero rather than deducting). grantBonusMinutes adds a delta; this one
+// sets an absolute value.
+export async function setBonusMinutes(profileId: string, value: number): Promise<number | null> {
+  try {
+    const session = await getOrCreateTodaySession(profileId, []);
+    const next = Math.max(-600, Math.min(600, value));
+    await updateSession(session.id, { bonus_minutes: next });
+    return next;
+  } catch {
+    return null;
+  }
+}

@@ -76,3 +76,30 @@ export function starsForSubject(rows: Attempt[]): number {
   if (ratio > 0) return 1;
   return 0;
 }
+
+/** Video time the child can watch RIGHT NOW, kept as a running balance ACROSS
+ *  days so earnings are never lost at midnight. For every day we add what was
+ *  earned that day (each day still capped at the daily max) plus any parent
+ *  bonus, and subtract what was watched. Today's earnings come in live from
+ *  today's attempts; past days come from their saved totals. The balance can
+ *  never go below zero. */
+export function lifetimeAvailableSeconds(
+  sessions: { day: string; earned_minutes?: number; minutes_used?: number; bonus_minutes?: number }[],
+  todayDay: string,
+  todayEarnedSeconds: number,
+  opts: { capMin?: number } = {},
+): number {
+  const cap = (opts.capMin ?? MAX_REWARD_MINUTES) * 60;
+  let earnable = 0;
+  let watched = 0;
+  let sawToday = false;
+  for (const s of sessions) {
+    const isToday = s.day === todayDay;
+    if (isToday) sawToday = true;
+    const earnedSec = isToday ? Math.max(0, todayEarnedSeconds) : Math.max(0, (s.earned_minutes || 0) * 60);
+    earnable += Math.min(earnedSec, cap) + Math.max(0, s.bonus_minutes || 0) * 60;
+    watched += Math.max(0, s.minutes_used || 0) * 60;
+  }
+  if (!sawToday) earnable += Math.min(Math.max(0, todayEarnedSeconds), cap);
+  return Math.max(0, earnable - watched);
+}
