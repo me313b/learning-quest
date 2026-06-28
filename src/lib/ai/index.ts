@@ -262,6 +262,7 @@ export async function generateQuestion(
   language: "en" | "fr" = "en",
   reasoning = false,
   avoid: string[] = [],
+  worksheet = false,
 ): Promise<Question | null> {
   const user = buildQuestionUser(
     subject,
@@ -273,6 +274,7 @@ export async function generateQuestion(
     language,
     reasoning,
     avoid,
+    worksheet,
   );
   // Try twice: models occasionally return malformed JSON or a question that
   // doesn't fit its type. One retry fixes nearly all of these; if both fail the

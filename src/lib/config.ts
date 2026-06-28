@@ -96,11 +96,14 @@ export const DIFFICULTY_BANDS: Record<number, string> = {
   7: "End of Year 3 / start of Year 4. A genuine challenge for a gifted infant.",
   8: "Year 4 level. Requires reasoning, not recall.",
   9: "Year 5 level. Stretch problem with a twist.",
-  10: "Year 6 / competition flavour. Very hard; meant to make them think hard.",
+  10: "Year 6 level. Very hard; meant to make them think hard.",
+  11: "Year 7 / early secondary. Genuine multi-step problems and reasoning.",
+  12: "Junior maths-olympiad flavour. A clever twist or insight is needed.",
+  13: "Genius / competition level. Should stretch even a gifted older child.",
 };
 
 export const MIN_DIFFICULTY = 1;
-export const MAX_DIFFICULTY = 10;
+export const MAX_DIFFICULTY = 13;
 export const QUESTIONS_PER_SUBJECT = 4;
 export const SECONDS_PER_QUESTION = 60;
 
@@ -177,10 +180,20 @@ const DIFF_NAMES: Record<number, string> = {
   8: "Expert",
   9: "Genius",
   10: "Boss Level",
+  11: "Genius+",
+  12: "Mastermind",
+  13: "Legendary",
 };
 
 export function difficultyLabel(level: number): string {
   return DIFF_NAMES[level] ?? "Quest";
+}
+
+/** How long to give for a question, scaled by difficulty: an easy question gets
+ *  about 30 seconds, a super-hard one up to 3 minutes. */
+export function secondsForDifficulty(difficulty: number): number {
+  const d = Math.max(1, Math.min(MAX_DIFFICULTY, Math.round(difficulty || 1)));
+  return Math.max(30, Math.min(180, 15 + d * 15));
 }
 
 // The specific areas each subject should rotate through, so a child sees a
@@ -199,6 +212,9 @@ export const SKILL_AREAS: Record<string, string[]> = {
     "money and change",
     "shape, area and perimeter",
     "number patterns and sequences",
+    "number series and what comes next",
+    "logic and reasoning puzzles",
+    "trick questions that test real understanding",
     "word problems (multi-step)",
   ],
   reading: [

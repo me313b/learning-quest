@@ -21,6 +21,7 @@ import { fallbackQuestion, randomEncourage, randomFact, randomPraise } from "@/l
 import {
   EASY_MISS_MAX_DIFFICULTY,
   QUESTIONS_PER_SUBJECT,
+  secondsForDifficulty,
   SKILL_AREAS,
   SUBJECTS,
 } from "@/lib/config";
@@ -918,10 +919,18 @@ export default function Quiz({
           {!isOpenWriting(question) && kid.questionSeconds > 0 && (
             <CountdownTimer
               key={`${subjIdx}-${count}-${attempt}`}
-              seconds={attempt === 2 ? Math.max(5, Math.ceil(kid.questionSeconds / 2)) : kid.questionSeconds}
+              seconds={
+                attempt === 2
+                  ? Math.max(10, Math.ceil(secondsForDifficulty(question.difficulty || difficulty) / 2))
+                  : secondsForDifficulty(question.difficulty || difficulty)
+              }
               overtimeSeconds={
                 kid.allowOvertime
-                  ? Math.ceil((attempt === 2 ? kid.questionSeconds / 2 : kid.questionSeconds) * 0.5)
+                  ? Math.ceil(
+                      (attempt === 2
+                        ? secondsForDifficulty(question.difficulty || difficulty) / 2
+                        : secondsForDifficulty(question.difficulty || difficulty)) * 0.5,
+                    )
                   : 0
               }
               onExpire={() => submit()}

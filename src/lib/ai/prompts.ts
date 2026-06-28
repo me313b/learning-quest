@@ -29,6 +29,7 @@ export function buildQuestionUser(
   language: "en" | "fr" = "en",
   reasoning = false,
   avoid: string[] = [],
+  worksheet = false,
 ): string {
   const meta = SUBJECTS[subject];
   const band = DIFFICULTY_BANDS[Math.round(difficulty)] ?? "";
@@ -76,22 +77,43 @@ export function buildQuestionUser(
     "explanation, not just a number. Mark generously: accept any answer showing sensible reasoning.";
 
   // Reading & Writing deserves genuinely meaningful tasks, not "write a sentence
-  // with a capital letter and a full stop". Rotate through real comprehension,
-  // vocabulary, inference and substantive writing, scaled to the level.
+  // with a capital letter and a full stop". Lead with real comprehension and
+  // inference, and rotate vocabulary and substantive writing, scaled to level.
   const readingRule =
-    '"type" must be "short_text". Make it a GENUINELY useful literacy task for a strong young reader, ' +
-    "and VARY which kind you pick each time: (a) give a short 1-2 sentence passage then ask a " +
-    "comprehension or INFERENCE question about it (how a character feels and why, what might happen " +
-    "next, what a word means in context); (b) a vocabulary task (a synonym, an antonym, or using an " +
-    "interesting word in a sentence); (c) a punctuation/grammar-in-context fix; or (d) a substantive " +
-    "WRITING prompt that needs a real idea (describe, explain, persuade, or continue a tiny story in " +
-    "one or two sentences). Avoid trivial copy-the-rule tasks. Put any passage to read inside the " +
-    "prompt. Mark on meaning and effort, not perfect spelling.";
+    '"type" must be "short_text". Make it a GENUINELY useful literacy task for a strong young reader. ' +
+    "VERY OFTEN (at least half the time) include a short passage to read INSIDE the prompt (1-3 " +
+    "sentences, longer and richer at higher levels) and then ask a COMPREHENSION or INFERENCE " +
+    "question about it: how a character feels and WHY, what might happen next, the main idea, or " +
+    "what a word means in context. Otherwise rotate: a vocabulary task (synonym, antonym, or use a " +
+    "word in a sentence), a punctuation/grammar-in-context fix, or a substantive WRITING prompt that " +
+    "needs a real idea (describe, explain, persuade, or continue a tiny story). Avoid trivial " +
+    "copy-the-rule tasks. Mark on meaning and effort, not perfect spelling.";
+
+  // Paper worksheet: everything multiple-choice (easy to mark), calculation-heavy
+  // and genuinely hard for the band.
+  const worksheetRule =
+    '"type" MUST be "multiple_choice" with EXACTLY four options and ONE correct answer. Make the ' +
+    "three wrong options plausible and tempting (the kinds of answers a child gets from a common " +
+    "mistake). Make it CALCULATION-HEAVY and genuinely hard for the band — real multi-step working, " +
+    "not a one-liner. For reading, include a short passage in the prompt and ask a comprehension or " +
+    "inference question with four answer choices. Put the full question and all four options in the prompt-appropriate fields.";
 
   let formatRule: string;
-  if (reasoning) formatRule = reasoningRule;
+  if (worksheet) formatRule = worksheetRule;
+  else if (reasoning) formatRule = reasoningRule;
   else if (subject === "reading") formatRule = readingRule;
   else formatRule = typeRules[meta.grading];
+
+  // Maths gets extra variety: series, patterns, logic and the occasional trick.
+  const mathsExtra =
+    subject === "maths"
+      ? "\nMATHS VARIETY: rotate widely across arithmetic, multi-step word problems, number SERIES and " +
+        "sequences ('what number comes next', find the rule), patterns, simple logic/reasoning " +
+        "puzzles, money, time and measurement. About one question in four should be a TRICK question " +
+        "that tests real understanding — it looks simple but has a catch, targets a common " +
+        "misconception, or needs careful reading. At higher bands lean into clever, olympiad-style " +
+        "problems that need an insight, not just bigger numbers."
+      : "";
 
   const langLine =
     language === "fr"
@@ -127,7 +149,7 @@ ${focusLine}
 ${coverageLine}
 ${themeLine}
 ${langLine}${frenchAudio}
-Avoid these recently-used topics: ${recent}.${avoidLine}
+Avoid these recently-used topics: ${recent}.${avoidLine}${mathsExtra}
 
 CHALLENGE: aim HIGH for the band — a multi-step word problem, a two-step calculation, a comparison,
 a pattern, or a "what comes next" with a twist, not a trivial one-liner. It should make a bright

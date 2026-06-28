@@ -1,7 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { difficultyColour, difficultyLabel } from "@/lib/config";
+import { difficultyColour, difficultyLabel, MAX_DIFFICULTY } from "@/lib/config";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`mc-card ${className}`}>{children}</div>;
@@ -49,11 +49,11 @@ export function XpBar({ value, max, label }: { value: number; max: number; label
 }
 
 export function DifficultyPips({ level }: { level: number }) {
-  const lvl = Math.max(1, Math.min(10, Math.round(level)));
+  const lvl = Math.max(1, Math.min(MAX_DIFFICULTY, Math.round(level)));
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-1">
-        {Array.from({ length: 10 }).map((_, i) => (
+        {Array.from({ length: MAX_DIFFICULTY }).map((_, i) => (
           <span
             key={i}
             className="h-3 w-3 rounded-[3px] border border-black/40"

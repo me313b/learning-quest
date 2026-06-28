@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { getUserAndKey } from "@/lib/server-settings";
 import { generateQuestion } from "@/lib/ai";
 import { fallbackQuestion } from "@/lib/content";
+import { MAX_DIFFICULTY } from "@/lib/config";
 import type { ChildProfile } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   if (!ctx.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = (await req.json()) as Body;
-  const difficulty = Math.max(1, Math.min(10, Math.round(body.difficulty || 3)));
+  const difficulty = Math.max(1, Math.min(MAX_DIFFICULTY, Math.round(body.difficulty || 3)));
 
   if (ctx.apiKey) {
     const q = await generateQuestion(

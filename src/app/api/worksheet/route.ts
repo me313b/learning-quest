@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { getUserAndKey } from "@/lib/server-settings";
 import { generateQuestion } from "@/lib/ai";
 import { fallbackQuestion } from "@/lib/content";
-import { SUBJECTS } from "@/lib/config";
+import { MAX_DIFFICULTY, SUBJECTS } from "@/lib/config";
 import type { ChildProfile, Question } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -21,7 +21,7 @@ interface Body {
 }
 
 function clamp(n: number): number {
-  return Math.max(1, Math.min(10, Math.round(n)));
+  return Math.max(1, Math.min(MAX_DIFFICULTY, Math.round(n)));
 }
 
 export async function POST(req: Request) {
@@ -37,7 +37,10 @@ export async function POST(req: Request) {
   const items: { subject: string; question: Question }[] = [];
 
   for (const subject of subjects) {
-    const base = clamp(body.difficulties?.[subject] ?? 3);
+    // Paper worksheets are deliberately harder than the on-screen quest: start a
+    // couple of bands above the child's level and climb from there.
+    const base = clamp((body.difficulties?.[subject] ?? 4) + 2);
+    const asked: string[] = [];
     for (let k = 0; k < perSubject; k++) {
       const difficulty = clamp(base + k);
       let q: Question | null = null;
@@ -51,9 +54,15 @@ export async function POST(req: Request) {
           difficulty,
           [],
           [],
+          [],
+          subject === "french" ? "fr" : "en",
+          false,
+          asked,
+          true, // worksheet: hard, calculation-based, multiple-choice
         );
       }
       if (!q) q = fallbackQuestion(subject, difficulty, body.profile);
+      if (q.prompt) asked.push(q.prompt);
       items.push({ subject, question: q });
     }
   }

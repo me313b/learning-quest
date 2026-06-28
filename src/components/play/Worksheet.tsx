@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getOrCreateTodaySession,
   recordAttempt,
@@ -22,6 +22,41 @@ interface SheetItem {
 }
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
+
+// Printed worksheets are saved on this device so the parent can come back days
+// later, choose the same sheet, and mark it against the exact questions that
+// were printed (the questions and answer key live in localStorage).
+interface SavedWS {
+  code: string;
+  ts: number;
+  date: string;
+  subjects: string[];
+  count: number;
+  name: string;
+}
+function wsIndexKey(pid: string) {
+  return `lq_ws_index_${pid}`;
+}
+function wsKey(code: string) {
+  return `lq_ws_${code}`;
+}
+function loadWsIndex(pid: string): SavedWS[] {
+  try {
+    return JSON.parse(localStorage.getItem(wsIndexKey(pid)) || "[]") as SavedWS[];
+  } catch {
+    return [];
+  }
+}
+function loadWsItems(code: string): SheetItem[] {
+  try {
+    return JSON.parse(localStorage.getItem(wsKey(code)) || "[]") as SheetItem[];
+  } catch {
+    return [];
+  }
+}
+function makeCode(): string {
+  return Math.random().toString(36).slice(2, 6).toUpperCase();
+}
 
 // Shrink a phone photo to a sensible size before upload: large enough for the
 // AI to read handwriting, small enough to stay well under the server cap and
@@ -89,6 +124,12 @@ export default function Worksheet({
   const [markNote, setMarkNote] = useState("");
   const [finalEarned, setFinalEarned] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [code, setCode] = useState("");
+  const [savedList, setSavedList] = useState<SavedWS[]>([]);
+
+  useEffect(() => {
+    setSavedList(loadWsIndex(profile.id));
+  }, [profile.id]);
 
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
@@ -118,12 +159,54 @@ export default function Worksheet({
         }),
       });
       const data = await res.json();
-      setItems((data.items as SheetItem[]) || []);
+      const its = (data.items as SheetItem[]) || [];
+      setItems(its);
       setMarks({});
+      // Save this sheet so it can be marked later, even after leaving the app.
+      try {
+        const c = makeCode();
+        localStorage.setItem(wsKey(c), JSON.stringify(its));
+        const entry: SavedWS = {
+          code: c,
+          ts: Date.now(),
+          date: today,
+          subjects: Array.from(new Set(its.map((i) => i.subject))),
+          count: its.length,
+          name: profile.name,
+        };
+        const idx = [entry, ...loadWsIndex(profile.id).filter((w) => w.code !== c)].slice(0, 12);
+        localStorage.setItem(wsIndexKey(profile.id), JSON.stringify(idx));
+        setSavedList(idx);
+        setCode(c);
+      } catch {
+        /* storage unavailable — marking still works this session */
+      }
       setPhase("ready");
     } catch {
       setItems([]);
       setPhase("ready");
+    }
+  }
+
+  function markSaved(ws: SavedWS) {
+    const its = loadWsItems(ws.code);
+    if (its.length) {
+      setItems(its);
+      setCode(ws.code);
+      setMarks({});
+      setMarkNote("");
+      setPhase("marking");
+    }
+  }
+
+  function deleteSaved(ws: SavedWS) {
+    try {
+      localStorage.removeItem(wsKey(ws.code));
+      const idx = loadWsIndex(profile.id).filter((w) => w.code !== ws.code);
+      localStorage.setItem(wsIndexKey(profile.id), JSON.stringify(idx));
+      setSavedList(idx);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -278,6 +361,47 @@ export default function Worksheet({
             Make worksheet 📄
           </PixelButton>
         </div>
+
+        {savedList.length > 0 && (
+          <div className="mc-card-dark space-y-2">
+            <h3 className="font-pixel text-[11px] text-gold">📂 Mark a printed worksheet</h3>
+            <p className="text-[11px] text-paper/60">
+              Printed one earlier? Pick it here to mark it now — the questions are saved.
+            </p>
+            <div className="space-y-2">
+              {savedList.map((ws) => (
+                <div
+                  key={ws.code}
+                  className="flex items-center justify-between gap-2 rounded-xl border-2 border-black/30 bg-black/20 p-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-paper/90">
+                      <span className="font-pixel text-[10px] text-paper/50">#{ws.code}</span>{" "}
+                      {ws.subjects.map((s) => SUBJECTS[s]?.label || s).join(", ")}
+                    </p>
+                    <p className="text-[11px] text-paper/50">
+                      {ws.date} · {ws.count} questions
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      onClick={() => markSaved(ws)}
+                      className="rounded-lg border-2 border-grasstop/50 bg-grass/15 px-3 py-1.5 text-xs text-paper"
+                    >
+                      Mark
+                    </button>
+                    <button
+                      onClick={() => deleteSaved(ws)}
+                      className="rounded-lg border-2 border-black/40 bg-black/20 px-2 py-1.5 text-xs text-paper/50"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-center">
           <button
@@ -445,6 +569,11 @@ export default function Worksheet({
               <div>
                 <span className="text-black/50">Date:</span> {today}
               </div>
+              {code && (
+                <div>
+                  <span className="text-black/50">Sheet code:</span> <span className="font-semibold">#{code}</span>
+                </div>
+              )}
               <div>
                 <span className="text-black/50">Score:</span> ____ / {items.length}
               </div>
