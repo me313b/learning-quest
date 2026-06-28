@@ -38,8 +38,8 @@ describe("startDifficulty", () => {
     expect(d).toBeLessThanOrEqual(10);
   });
 
-  it("stays within 1..13", () => {
-    expect(startDifficulty("maths", {}, { maths: 99 })).toBeLessThanOrEqual(13);
+  it("stays within 1..15", () => {
+    expect(startDifficulty("maths", {}, { maths: 99 })).toBeLessThanOrEqual(15);
     expect(startDifficulty("maths", {}, { maths: -5 })).toBeGreaterThanOrEqual(1);
   });
 });
@@ -52,7 +52,7 @@ describe("nextDifficulty", () => {
   });
 
   it("clamps at the boundaries", () => {
-    expect(nextDifficulty(13, "correct")).toBe(13);
+    expect(nextDifficulty(15, "correct")).toBe(15);
     expect(nextDifficulty(1, "incorrect")).toBe(1);
   });
 });
@@ -71,8 +71,8 @@ describe("updateAbility", () => {
     expect(updateAbility(undefined, 5, "correct")).toBeGreaterThan(5);
   });
 
-  it("stays within 1..10", () => {
-    expect(updateAbility(10, 10, "correct")).toBeLessThanOrEqual(10);
+  it("stays within 1..15", () => {
+    expect(updateAbility(15, 15, "correct")).toBeLessThanOrEqual(15);
     expect(updateAbility(1, 1, "incorrect")).toBeGreaterThanOrEqual(1);
   });
 });
