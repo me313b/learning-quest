@@ -14,7 +14,7 @@ interface Msg {
   en?: string;
 }
 type Phase = "thinking" | "speaking" | "listening" | "paused" | "idle";
-const MAX_AI_TURNS = 12;
+const MAX_AI_TURNS = 16;
 
 function wait(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -35,6 +35,9 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
   const emptyRef = useRef(0);
   const scenarioRef = useRef<Scenario | null>(null);
   const recentPlacesRef = useRef<string[]>([]);
+  const levelRef = useRef(2);
+  const [suggestion, setSuggestion] = useState<{ fr: string; en: string } | null>(null);
+  const [revealAtlas, setRevealAtlas] = useState(false);
   const [genLoading, setGenLoading] = useState(false);
 
   async function surprise() {
@@ -74,13 +77,23 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
   }
 
   useEffect(() => {
-    // Warm the opening lines so the conversation can start the instant a place
-    // is picked, with no waiting for audio.
-    SCENARIOS.forEach((sc) => prefetchSpeech(sc.opener.fr, "fr-FR"));
+    // Warm just the first few openers so the picker is snappy, without firing a
+    // speech request for every place at once.
+    SCENARIOS.slice(0, 6).forEach((sc) => prefetchSpeech(sc.opener.fr, "fr-FR"));
     return () => {
       runningRef.current = false;
     };
   }, []);
+
+  function warm(sc: Scenario) {
+    prefetchSpeech(sc.opener.fr, "fr-FR");
+  }
+
+  function askAtlas() {
+    if (!suggestion) return;
+    setRevealAtlas(true);
+    speakNaturalOnly(suggestion.fr, "fr-FR");
+  }
 
   function push(m: Msg) {
     messagesRef.current = [...messagesRef.current, m];
@@ -91,8 +104,12 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
     if (!runningRef.current || busyRef.current) return;
     busyRef.current = true;
     setPhase("listening");
+    setRevealAtlas(false);
     const lastAiLine = [...messagesRef.current].reverse().find((m) => m.who === "ai")?.fr || "";
-    const res = await listen(10000, { prompt: lastAiLine });
+    // Give the child plenty of thinking time: wait up to 5 seconds of quiet
+    // before deciding they've finished, and allow a long total turn. They can
+    // tap "I'm done" to send straight away.
+    const res = await listen(25000, { prompt: lastAiLine, silenceMs: 5000 });
     busyRef.current = false;
     if (!runningRef.current) return;
     if (res === null) {
@@ -103,9 +120,12 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
     const said = (res.text || "").trim();
     if (said) {
       emptyRef.current = 0;
+      const words = said.split(/\s+/).filter(Boolean).length;
+      if (words >= 4 && levelRef.current < 5) levelRef.current += 1;
       push({ who: "child", fr: said });
     } else {
       emptyRef.current += 1;
+      if (levelRef.current > 1) levelRef.current -= 1;
       if (emptyRef.current >= 3) {
         // Don't let the AI talk to itself — wait for the child to tap.
         setPhase("paused");
@@ -124,6 +144,7 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
     }
     setPhase("thinking");
     setHint("");
+    setSuggestion(null);
     const struggled = emptyRef.current >= 1;
     let fr = "";
     let en = "";
@@ -138,6 +159,7 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
           history: messagesRef.current.map((m) => ({ who: m.who, fr: m.fr })),
           kidSaid,
           struggled,
+          level: levelRef.current,
         }),
       });
       const data = await res.json();
@@ -145,6 +167,9 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
         fr = data.reply.fr;
         en = data.reply.en || "";
         hint_en = data.reply.hint_en || "";
+        if (data.reply.suggestion_fr) {
+          setSuggestion({ fr: data.reply.suggestion_fr, en: data.reply.suggestion_en || "" });
+        }
         setNoKey(false);
       } else if (data.fallback) {
         setNoKey(true);
@@ -193,7 +218,10 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
     setMessages([]);
     aiTurnsRef.current = 0;
     emptyRef.current = 0;
+    levelRef.current = 2;
     setHint("");
+    setSuggestion(null);
+    setRevealAtlas(false);
     runningRef.current = true;
     // Start instantly with the scenario's own opener (audio is pre-warmed), then
     // hand over to the AI for every following turn.
@@ -226,7 +254,10 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
           </button>
           <span className="font-pixel text-[11px] text-diamond">💬 Talk in French</span>
         </div>
-        <p className="text-sm text-paper/75">Pick a place, or get a surprise one. You&apos;ll chat with someone there — just talk, no buttons!</p>
+        <p className="text-sm text-paper/75">
+          Pick a place, or get a surprise one. You&apos;ll chat with someone there — just talk! Take your time, and tap
+          🦉 Ask Atlas if you get stuck.
+        </p>
         <button
           onClick={surprise}
           disabled={genLoading}
@@ -240,6 +271,8 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
             <button
               key={sc.id}
               onClick={() => begin(sc)}
+              onMouseEnter={() => warm(sc)}
+              onTouchStart={() => warm(sc)}
               disabled={genLoading}
               className="flex flex-col gap-1 rounded-2xl border-4 border-black/50 p-4 text-left shadow-pixel disabled:opacity-60"
               style={{ background: sc.bg }}
@@ -315,18 +348,28 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
         {phase === "speaking" && <p className="text-sm text-diamond">🔊 Listen…</p>}
         {phase === "paused" && <p className="text-sm text-gold2">Ready when you are — tap 🎙️ to talk</p>}
         {phase === "listening" && (
-          <div className="flex flex-col items-center gap-1.5">
-            <p className="text-sm text-grasstop">🎙️ Your turn — answer!</p>
-            <div className="h-2 w-40 overflow-hidden rounded-full bg-paper/15">
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm text-grasstop">🎙️ Your turn — take your time</p>
+            <div className="h-2 w-44 overflow-hidden rounded-full bg-paper/15">
               <div className="h-full rounded-full bg-grasstop" style={{ width: `${Math.round(mic * 100)}%` }} />
             </div>
-            <button onClick={stopEarly} className="text-[11px] text-paper/45 underline">
-              done
+            <button
+              onClick={stopEarly}
+              className="rounded-xl border-2 border-grasstop/50 bg-grass/15 px-5 py-2 text-sm font-semibold text-paper"
+            >
+              ✓ I&apos;m done
             </button>
+            <p className="text-[11px] text-paper/40">No rush — tap when you&apos;ve finished talking.</p>
           </div>
         )}
-        {hint && phase !== "thinking" && (
-          <p className="mt-1 text-[12px] text-gold2">💡 {hint}</p>
+        {hint && phase !== "thinking" && <p className="mt-1 text-[12px] text-gold2">💡 {hint}</p>}
+        {revealAtlas && suggestion && (
+          <div className="mt-1">
+            <p className="text-[12px] text-grasstop">
+              💬 Try saying: <span className="font-semibold">{suggestion.fr}</span>
+            </p>
+            {suggestion.en && <p className="text-[11px] text-paper/55">({suggestion.en})</p>}
+          </div>
         )}
       </div>
 
@@ -337,6 +380,14 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
         >
           🔊 Say again
         </button>
+        {suggestion && (phase === "listening" || phase === "paused") && (
+          <button
+            onClick={askAtlas}
+            className="rounded-lg border-2 border-gold/50 bg-gold/10 px-3 py-2 text-xs text-gold2"
+          >
+            🦉 Ask Atlas
+          </button>
+        )}
         {runningRef.current && phase === "paused" && (
           <button onClick={childTurn} className="rounded-lg border-2 border-grasstop/40 bg-grass/10 px-4 py-2 text-sm text-paper/85">
             🎙️ My turn

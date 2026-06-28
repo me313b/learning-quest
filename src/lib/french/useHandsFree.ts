@@ -75,7 +75,7 @@ export function useHandsFree() {
   const listen = useCallback(
     async (
       maxMs = 9000,
-      opts?: { language?: string; prompt?: string },
+      opts?: { language?: string; prompt?: string; silenceMs?: number },
     ): Promise<ListenResult | null> => {
       setStatus("listening");
       let heardSpeech = false;
@@ -109,7 +109,9 @@ export function useHandsFree() {
 
         const SPEAK = 0.04; // RMS above this counts as talking (a touch softer, for quiet kids)
         const QUIET = 0.025; // RMS below this counts as silence
-        const SILENCE_MS = 1200; // stop this long after talking stops (snappier turns)
+        // How long to keep waiting after the child stops. Callers can pass a
+        // longer window so a child who pauses mid-thought isn't cut off.
+        const SILENCE_MS = Math.max(600, opts?.silenceMs ?? 1200);
         const GRACE_MS = 700; // don't allow an instant stop at the very start
         const start = performance.now();
         let lastVoice = start;

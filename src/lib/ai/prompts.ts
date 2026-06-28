@@ -446,12 +446,17 @@ Return JSON with EXACTLY these keys:
 }
 
 export const FRENCH_CONVO_SYSTEM =
-  "You are role-playing a real, friendly French person chatting with a 6-7 year old who is " +
-  "learning French. Stay fully in character for the place. Speak ONLY in very simple French, " +
-  "ONE short line at a time (about 3 to 9 words), present tense, common words. React SPECIFICALLY " +
-  "to what the child just said (don't ignore it or repeat yourself), keep it warm, lively, varied " +
-  "and natural like a real person, and move the little story forward. Always end your line with a " +
-  "simple question so the child can reply. Always reply with ONLY valid JSON.";
+  "You are Atlas, a warm, clever French-speaking friend role-playing a real person at a place, " +
+  "chatting with a 6-7 year old who is learning French. Stay fully in character for the place. " +
+  "Speak ONLY in simple, natural French, ONE short line at a time, present tense, common words. " +
+  "React SPECIFICALLY to what the child just said — never ignore it or repeat yourself. Keep it " +
+  "warm, lively and varied like a real person, and move the little story forward with a new small " +
+  "detail or idea each turn so it never feels flat. Gently weave in ONE new useful word now and " +
+  "then (the child can guess it from context). If the child makes a small mistake, model the " +
+  "correct phrase naturally in your reply without scolding. Match the child's level: at low levels " +
+  "use 3-6 very easy words; at higher levels you may use 6-12 words and richer ideas. Always end " +
+  "with ONE simple question so the child can answer. Also give a short suggestion of what the child " +
+  "could say back, so they're never stuck. Always reply with ONLY valid JSON.";
 
 export function buildFrenchConvoUser(
   scenario: string,
@@ -459,16 +464,19 @@ export function buildFrenchConvoUser(
   history: { who: "ai" | "child"; fr: string }[],
   kidSaid: string,
   struggled: boolean,
+  level = 2,
 ): string {
   const convo =
     history.length === 0
       ? "(the conversation is just starting — greet the child warmly and ask the first simple question)"
       : history.map((h) => `${h.who === "ai" ? "You" : "Child"}: ${h.fr}`).join("\n");
   const last = kidSaid ? `\nThe child just said (transcribed, may be imperfect): "${kidSaid}".` : "";
+  const lv = Math.max(1, Math.min(5, Math.round(level)));
   const help = struggled
-    ? "The child is finding it hard. Make your next line EXTRA simple and short, gently rephrase, and give a tiny hint in English to help them answer (even one word is fine)."
-    : "Keep it flowing naturally and add a little new detail.";
+    ? "The child is finding it hard or went quiet. Make your next line EXTRA simple and short, gently rephrase or offer a friendly choice (e.g. 'tu veux X ou Y ?'), and keep your suggestion very easy (even one word)."
+    : "Keep it flowing naturally, add a little new detail, and keep them curious.";
   return `Scenario: ${scenario}. Setting: ${setting}.
+Child's French level: ${lv} of 5 (1 = beginner, 5 = confident). Calibrate your difficulty to this.
 Conversation so far:
 ${convo}${last}
 
@@ -480,6 +488,8 @@ Return JSON with EXACTLY these keys:
   "fr": "your short French line (with a question)",
   "en": "the English translation",
   "hint_en": "a tiny hint to help the child answer, in English (keep short; empty string if not needed)",
+  "suggestion_fr": "a short, natural French phrase the child could say back",
+  "suggestion_en": "the English meaning of that suggestion",
   "done": false
 }`;
 }

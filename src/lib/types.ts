@@ -135,6 +135,8 @@ export interface FrenchConvoReply {
   fr: string;
   en: string;
   hint_en?: string;
+  suggestion_fr?: string; // a short French phrase the child could say back
+  suggestion_en?: string; // its English meaning
   done?: boolean;
 }
 

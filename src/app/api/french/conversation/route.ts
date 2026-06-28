@@ -10,6 +10,7 @@ interface Body {
   history?: { who: "ai" | "child"; fr: string }[];
   kidSaid?: string;
   struggled?: boolean;
+  level?: number;
 }
 
 export async function POST(req: Request) {
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     Array.isArray(body.history) ? body.history : [],
     body.kidSaid || "",
     Boolean(body.struggled),
+    typeof body.level === "number" ? body.level : 2,
   );
   if (!reply) return NextResponse.json({ fallback: true });
   return NextResponse.json({ reply });

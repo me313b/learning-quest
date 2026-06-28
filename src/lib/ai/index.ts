@@ -735,17 +735,20 @@ export async function frenchConversationReply(
   history: { who: "ai" | "child"; fr: string }[],
   kidSaid: string,
   struggled: boolean,
+  level = 2,
 ): Promise<FrenchConvoReply | null> {
-  const user = buildFrenchConvoUser(scenario, setting, history, kidSaid, struggled);
+  const user = buildFrenchConvoUser(scenario, setting, history, kidSaid, struggled, level);
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw = await chat(provider, apiKey, model, FRENCH_CONVO_SYSTEM, user, { maxTokens: 300 });
+      const raw = await chat(provider, apiKey, model, FRENCH_CONVO_SYSTEM, user, { maxTokens: 360 });
       const data = extractJson(raw);
       if (data && typeof data.fr === "string" && (data.fr as string).trim()) {
         return {
           fr: (data.fr as string).trim(),
           en: typeof data.en === "string" ? (data.en as string).trim() : "",
           hint_en: typeof data.hint_en === "string" ? (data.hint_en as string).trim() : "",
+          suggestion_fr: typeof data.suggestion_fr === "string" ? (data.suggestion_fr as string).trim() : "",
+          suggestion_en: typeof data.suggestion_en === "string" ? (data.suggestion_en as string).trim() : "",
           done: Boolean(data.done),
         };
       }
