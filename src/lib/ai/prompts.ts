@@ -188,6 +188,16 @@ export function buildQuestionUser(
       "only, NEVER copying. Any wrong options must be genuinely tempting, not random."
     : "";
 
+  // Research-backed quality lift for EVERY level (most quiz questions are low-level
+  // recall — these formats push for reasoning and understanding instead).
+  const qualityBlock =
+    "\nQUALITY: aim ABOVE plain recall. The best questions make the child reason and explain. When it " +
+    "fits the topic and level, reach for a proven format: use a fact they likely know to work out a new " +
+    "one (e.g. from 5+5, work out 5+6); \"true or false — and how do you know?\"; \"always, sometimes or " +
+    "never true?\"; \"odd one out — why?\"; \"what's the same and what's different?\"; spot or continue a " +
+    "pattern; or a short real-life problem. The child should have to think a little, but it must stay " +
+    "fair and clearly worded for the age.";
+
   let formatRule: string;
   if (worksheet) formatRule = worksheetRule;
   else if (reasoning) formatRule = reasoningRule;
@@ -241,7 +251,7 @@ ${focusLine}
 ${coverageLine}
 ${themeLine}
 ${langLine}${frenchAudio}
-Avoid these recently-used topics: ${recent}.${avoidLine}${mathsExtra}${richnessBlock}
+Avoid these recently-used topics: ${recent}.${avoidLine}${mathsExtra}${richnessBlock}${qualityBlock}
 
 CHALLENGE: aim HIGH for the band — a multi-step word problem, a two-step calculation, a comparison,
 a pattern, or a "what comes next" with a twist, not a trivial one-liner. It should make a bright

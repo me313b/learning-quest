@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { attemptsForProfile } from "@/lib/data";
 import { currentStreak, subjectBreakdown } from "@/lib/analytics";
@@ -25,10 +25,10 @@ export default function Welcome({
   const [lines, setLines] = useState<string[]>([]);
   const [spoken, setSpoken] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
+  const playedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
-    let cleanupGesture = () => {};
     primeVoices();
     (async () => {
       const name = profile.name || "explorer";
@@ -99,35 +99,31 @@ export default function Welcome({
       setSpoken(say);
       setLoaded(true);
 
-      // Read the greeting aloud with the NATURAL voice only. Warm the audio,
-      // then try to play it. If the browser blocks autoplay (normal on iPad),
-      // play it the moment the child first taps or presses a key, rather than
-      // dropping to the robotic built-in voice.
+      // Warm the audio, then try to autoplay the greeting with the natural voice.
+      // On iPad autoplay is blocked, so we mark it "not yet played" and the
+      // child's first button tap below plays it (and it now carries on into the
+      // home screen rather than being cut off the instant they tap).
       prefetchSpeech(say, "en-GB");
-      const tryPlay = async () => {
-        if (!alive) return;
-        const ok = await speakNaturalOnly(say, "en-GB");
-        if (ok || !alive) return;
-        const once = () => {
-          cleanupGesture();
-          if (alive) speakNaturalOnly(say, "en-GB");
-        };
-        window.addEventListener("pointerdown", once);
-        window.addEventListener("keydown", once);
-        cleanupGesture = () => {
-          window.removeEventListener("pointerdown", once);
-          window.removeEventListener("keydown", once);
-          cleanupGesture = () => {};
-        };
-      };
-      setTimeout(tryPlay, 350);
+      playedRef.current = true; // optimistic: assume autoplay will work
+      speakNaturalOnly(say, "en-GB").then((ok) => {
+        if (!ok) playedRef.current = false; // autoplay blocked or unavailable
+      });
     })();
     return () => {
       alive = false;
-      cleanupGesture();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.id]);
+
+  // Play the greeting with the natural voice, falling back to the browser voice
+  // only if the natural one isn't available (e.g. no API key), so it's always
+  // audible the moment the child taps.
+  function playGreeting() {
+    playedRef.current = true;
+    speakNaturalOnly(spoken, "en-GB").then((ok) => {
+      if (!ok) speakSmart(spoken, "en-GB");
+    });
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-8">
@@ -165,7 +161,7 @@ export default function Welcome({
         )}
 
         <button
-          onClick={() => speakSmart(spoken, "en-GB")}
+          onClick={playGreeting}
           disabled={!loaded}
           className="mt-5 inline-flex items-center gap-2 rounded-xl border-2 border-black/40 bg-black/25 px-4 py-2 text-base text-paper/85 disabled:opacity-40"
         >
@@ -178,7 +174,13 @@ export default function Welcome({
         animate={{ scale: [1, 1.035, 1] }}
         transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
       >
-        <PixelButton onClick={onStart} className="w-full py-5 text-base">
+        <PixelButton
+          onClick={() => {
+            if (!playedRef.current) playGreeting();
+            onStart();
+          }}
+          className="w-full py-5 text-base"
+        >
           I&apos;m ready! ▶
         </PixelButton>
       </motion.div>

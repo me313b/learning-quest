@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getKidSettings, getProfile, getRewardSettings, getTodaySession, recentSessions, todayAttempts, todayStr } from "@/lib/data";
 import {
@@ -88,9 +88,12 @@ export default function GameShell({ profileId }: { profileId: string }) {
   }, [view]);
 
   // Stop any talking the moment the child moves to another screen, so a voice
-  // never carries over into the next page.
+  // never carries over into the next page — EXCEPT when leaving the welcome
+  // screen, where we deliberately let the greeting finish as home loads.
+  const prevViewRef = useRef(view);
   useEffect(() => {
-    stopAllSpeech();
+    if (prevViewRef.current !== "welcome") stopAllSpeech();
+    prevViewRef.current = view;
   }, [view]);
 
   useEffect(() => {
