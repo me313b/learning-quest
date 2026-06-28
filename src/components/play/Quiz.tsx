@@ -172,6 +172,7 @@ export default function Quiz({
   kidRef.current = kid;
   const { listen: listenAnswer, status: recStatus, level: recLevel } = useHandsFree();
   const [recording, setRecording] = useState(false);
+  const [recordHint, setRecordHint] = useState("");
   const [geniusAward, setGeniusAward] = useState(false);
   const geniusAwardedRef = useRef(false);
 
@@ -328,6 +329,7 @@ export default function Quiz({
     setAnswer("");
     setChoice("");
     setFile(null);
+    setRecordHint("");
     answerRef.current = "";
     choiceRef.current = "";
     fileRef.current = null;
@@ -809,6 +811,8 @@ export default function Quiz({
   // for questions that ask them to explain (where talking is easier than writing).
   async function recordAnswer() {
     if (recording || !question) return;
+    stopAllSpeech(); // don't let the mic pick up the French audio that may be playing
+    setRecordHint("");
     setRecording(true);
     const lang = currentSubject === "french" || language === "fr" ? "fr" : "en";
     const res = await listenAnswer(20000, { language: lang, silenceMs: 4000 });
@@ -818,6 +822,13 @@ export default function Quiz({
       const next = answer ? `${answer} ${said}` : said;
       setAnswer(next);
       answerRef.current = next;
+      setRecordHint("");
+    } else if (res == null) {
+      setRecordHint("I couldn't use the microphone. You can type your answer instead.");
+    } else if (!res.heardSpeech) {
+      setRecordHint("I didn't hear anything — tap again and speak a little louder, or type it.");
+    } else {
+      setRecordHint("I couldn't quite catch that — try again, or type your answer.");
     }
   }
 
@@ -1042,6 +1053,7 @@ export default function Quiz({
                     </div>
                   )}
                   {recStatus === "thinking" && <p className="text-[11px] text-paper/50">Writing down what you said…</p>}
+                  {recordHint && <p className="text-center text-[11px] text-gold/90">{recordHint}</p>}
                 </div>
               )}
             </div>

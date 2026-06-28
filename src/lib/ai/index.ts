@@ -621,6 +621,20 @@ export async function transcribeAudio(
   const bytes = Buffer.from(audioB64, "base64");
   const url = "https://api.openai.com/v1/audio/transcriptions";
   const headers = { authorization: `Bearer ${apiKey}` };
+  // OpenAI detects the audio format from the FILENAME extension, so it must match
+  // the actual recording. iPads/iOS record as audio/mp4, not webm — sending mp4
+  // bytes named "audio.webm" makes the API reject it and return nothing.
+  const m = mime.toLowerCase();
+  const ext = m.includes("mp4") || m.includes("m4a") || m.includes("aac")
+    ? "mp4"
+    : m.includes("ogg") || m.includes("oga")
+      ? "ogg"
+      : m.includes("mpeg") || m.includes("mp3") || m.includes("mpga")
+        ? "mp3"
+        : m.includes("wav")
+          ? "wav"
+          : "webm";
+  const filename = `audio.${ext}`;
   // Try the newer, more accurate transcription model first — it handles young
   // and accented voices much better — then fall back to whisper-1. The `prompt`
   // biases recognition toward the words we expect (e.g. the target phrase), so
@@ -628,7 +642,7 @@ export async function transcribeAudio(
   for (const model of ["gpt-4o-mini-transcribe", "whisper-1"]) {
     try {
       const form = new FormData();
-      form.append("file", new Blob([bytes], { type: mime }), "audio.webm");
+      form.append("file", new Blob([bytes], { type: mime }), filename);
       form.append("model", model);
       form.append("response_format", "json");
       if (language) form.append("language", language);
