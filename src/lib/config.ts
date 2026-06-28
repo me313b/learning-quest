@@ -100,21 +100,24 @@ export const DIFFICULTY_BANDS: Record<number, string> = {
   11: "Year 7 / early secondary. Genuine multi-step problems and reasoning.",
   12: "Junior maths-olympiad flavour. A clever twist or insight is needed.",
   13: "Genius / competition level. Should stretch even a gifted older child.",
+  14: "Advanced olympiad. A real insight or neat trick is required.",
+  15: "Champion level. The hardest a brilliant child should ever meet.",
 };
 
 export const MIN_DIFFICULTY = 1;
-export const MAX_DIFFICULTY = 13;
+export const MAX_DIFFICULTY = 15;
 export const QUESTIONS_PER_SUBJECT = 4;
 export const SECONDS_PER_QUESTION = 60;
 
 // Parent-declared strength maps to a sensible *starting* difficulty floor. We
 // deliberately start high (a real stretch) and let the adaptive engine ease the
-// difficulty down only if the child gets one wrong, rather than starting easy.
+// difficulty down only if the child gets one wrong. A "strong" child is pitched
+// well above their year, not at Year 1.
 export const STRENGTH_START: Record<Strength, number> = {
   needs_practice: 4,
   on_track: 6,
-  strong: 7,
-  very_strong: 8,
+  strong: 8,
+  very_strong: 10,
 };
 export const DEFAULT_START_DIFFICULTY = 6;
 
@@ -183,6 +186,8 @@ const DIFF_NAMES: Record<number, string> = {
   11: "Genius+",
   12: "Mastermind",
   13: "Legendary",
+  14: "Champion",
+  15: "Grandmaster",
 };
 
 export function difficultyLabel(level: number): string {

@@ -257,18 +257,50 @@ function mathsQuestion(level: number): Question {
       });
     }
     default: {
-      const x = randInt(3, 12);
-      const mult = randInt(2, 5);
-      const add = randInt(1, 20);
-      const result = x * mult + add;
+      const pick = randInt(1, 3);
+      if (pick === 1) {
+        // Number series (arithmetic): find the next term. Bigger steps higher up.
+        const start = randInt(2, 9);
+        const step = randInt(2, 9) + (level >= 12 ? randInt(2, 6) : 0);
+        const seq = [start, start + step, start + 2 * step, start + 3 * step];
+        return q({
+          type: "numeric",
+          topic: "number series",
+          skill: "number series and what comes next",
+          difficulty: level,
+          prompt: `What number comes next in this pattern? ${seq.join(", ")}, ?`,
+          answer: String(start + 4 * step),
+          solution: `Each step adds ${step}, so the next number is ${start + 4 * step}.`,
+        });
+      }
+      if (pick === 2) {
+        // Two-step "work backwards" with larger numbers at higher levels.
+        const mag = level >= 12 ? 14 : 9;
+        const x = randInt(4, mag);
+        const mult = randInt(3, level >= 12 ? 9 : 6);
+        const add = randInt(5, 30);
+        const result = x * mult + add;
+        return q({
+          type: "numeric",
+          topic: "missing number",
+          skill: "word problems (multi-step)",
+          difficulty: level,
+          prompt: `A number is multiplied by ${mult}, then ${add} is added, giving ${result}. What is the number?`,
+          answer: String(x),
+          solution: `Work backwards: (${result} − ${add}) ÷ ${mult} = ${x}.`,
+        });
+      }
+      // Doubling series at the very top.
+      const base = randInt(2, 5);
+      const seq = [base, base * 2, base * 4, base * 8];
       return q({
         type: "numeric",
-        topic: "missing number",
-        skill: "word problems (multi-step)",
-        difficulty: 10,
-        prompt: `A number times ${mult}, then add ${add}, gives ${result}. What is the number?`,
-        answer: String(x),
-        solution: `Work backwards: (${result} − ${add}) ÷ ${mult} = ${x}.`,
+        topic: "number series",
+        skill: "number series and what comes next",
+        difficulty: level,
+        prompt: `What comes next? ${seq.join(", ")}, ?`,
+        answer: String(base * 16),
+        solution: `Each number doubles, so the next one is ${base * 16}.`,
       });
     }
   }
@@ -425,7 +457,7 @@ export function fallbackQuestion(
   difficulty: number,
   _profile: ChildProfile,
 ): Question {
-  const level = Math.max(1, Math.min(10, Math.round(difficulty)));
+  const level = Math.max(1, Math.min(15, Math.round(difficulty)));
   switch (subject) {
     case "maths":
       return mathsQuestion(level);

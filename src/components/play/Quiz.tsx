@@ -5,6 +5,7 @@ import {
   coveredSkillsThisWeek,
   getKidSettings,
   getOrCreateTodaySession,
+  grantBonusMinutes,
   persistAbility,
   recentPrompts,
   recentTopics,
@@ -169,6 +170,8 @@ export default function Quiz({
   kidRef.current = kid;
   const { listen: listenAnswer, status: recStatus, level: recLevel } = useHandsFree();
   const [recording, setRecording] = useState(false);
+  const [geniusAward, setGeniusAward] = useState(false);
+  const geniusAwardedRef = useRef(false);
 
   // Refs mirror the state that async callbacks (timer, grading) need to read.
   const phaseRef = useRef<Phase>("loading");
@@ -532,6 +535,19 @@ export default function Quiz({
     const newAbility = updateAbility(abilityRef.current[s], difficultyRef.current, finalVerdict);
     abilityRef.current = { ...abilityRef.current, [s]: newAbility };
     persistAbility(profile, s, newAbility).catch(() => {});
+
+    // Reaching the very top tier and getting it right earns a special, one-time
+    // genius award (a bonus of video time) and a big celebration — then the quest
+    // keeps serving the hardest questions.
+    const answeredDiff = q.difficulty || difficultyRef.current;
+    const won = finalVerdict === "correct" || (finalVerdict === "partial" && opts.secondTry);
+    const earnedGenius = won && answeredDiff >= 13 && !geniusAwardedRef.current;
+    if (earnedGenius) {
+      geniusAwardedRef.current = true;
+      grantBonusMinutes(profile.id, 3).catch(() => {});
+    }
+    setGeniusAward(earnedGenius);
+
     difficultyRef.current = nextDifficulty(difficultyRef.current, finalVerdict);
     setDifficulty(difficultyRef.current);
 
@@ -1051,6 +1067,15 @@ export default function Quiz({
               })()}
             </p>
           </div>
+
+          {geniusAward && (
+            <div className="rounded-2xl border-4 border-gold/60 bg-gold/15 p-3 text-center">
+              <p className="font-pixel text-sm text-gold">🏆 GENIUS AWARD!</p>
+              <p className="mt-1 text-sm text-paper/85">
+                You reached the top level — here are 3 bonus minutes of video time! 🎉
+              </p>
+            </div>
+          )}
 
           <p className="text-lg text-paper/90">{result.feedback}</p>
 

@@ -50,8 +50,8 @@ export function buildQuestionUser(
   };
 
   const focusLine = focus
-    ? `The child recently got these WRONG: ${focus}. Pick ONE of them, pitched a ` +
-      "touch easier so they can rebuild confidence."
+    ? `The child recently got these WRONG: ${focus}. You MAY revisit ONE of them, but keep it at the ` +
+      "requested band (do NOT make it easier) — just approach it from a fresh angle."
     : `Choose a skill area they have NOT seen recently. Areas to rotate through: ${areas}.`;
 
   const coverageLine = covered.length
@@ -135,12 +135,14 @@ export function buildQuestionUser(
   // Maths gets extra variety: series, patterns, logic and the occasional trick.
   const mathsExtra =
     subject === "maths"
-      ? "\nMATHS VARIETY: rotate widely across arithmetic, multi-step word problems, number SERIES and " +
-        "sequences ('what number comes next', find the rule), patterns, simple logic/reasoning " +
-        "puzzles, money, time and measurement. About one question in four should be a TRICK question " +
-        "that tests real understanding — it looks simple but has a catch, targets a common " +
-        "misconception, or needs careful reading. At higher bands lean into clever, olympiad-style " +
-        "problems that need an insight, not just bigger numbers."
+      ? "\nMATHS VARIETY (important): do NOT keep using the same operation. If the recent questions above " +
+        "were multiplication (or any one skill), pick something DIFFERENT this time. Rotate widely across " +
+        "addition, subtraction, multiplication, division, fractions, money, time, measurement, place value, " +
+        "and especially NUMBER SERIES and sequences ('what number comes next', find the rule — include these " +
+        "often), patterns, and simple logic/reasoning puzzles. Use multi-step word problems frequently. About " +
+        "one question in four should be a TRICK question that looks simple but has a catch or targets a common " +
+        "misconception. At higher bands use bigger numbers AND cleverer, olympiad-style problems that need an " +
+        "insight, not just larger sums."
       : "";
 
   const langLine =

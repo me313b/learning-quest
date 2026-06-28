@@ -30,11 +30,12 @@ export function startDifficulty(
 ): number {
   const floor = STRENGTH_START[strengths?.[subject]] ?? DEFAULT_START_DIFFICULTY;
   const demonstrated = ability?.[subject];
-  // No history: open with a real stretch (one above the floor) and let it ease
-  // down if needed.
+  // No history: open with a real stretch (one above the floor).
   if (demonstrated == null) return clamp(floor + 1);
-  // Mostly what they've shown they can do, nudged up so it always opens hard.
-  return clamp(demonstrated * 0.8 + floor * 0.2 + 1);
+  // Treat the parent's declared level as a FIRM floor (a strong child always
+  // starts high); demonstrated ability can only push it higher. Add a stretch so
+  // it always opens hard, then the in-quest engine fine-tunes from there.
+  return clamp(Math.max(demonstrated, floor) + 1);
 }
 
 export function nextDifficulty(current: number, verdict: Verdict): number {
@@ -56,7 +57,7 @@ export function updateAbility(
   else if (verdict === "partial") target = difficulty;
   else target = difficulty - 0.8;
   const next = ability + 0.35 * (target - ability);
-  return Math.round(Math.max(1, Math.min(10, next)) * 100) / 100;
+  return Math.round(Math.max(1, Math.min(MAX_DIFFICULTY, next)) * 100) / 100;
 }
 
 // --------------------------------------------------------------------------- //
