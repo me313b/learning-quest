@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   EXTERNAL_CATEGORIES,
   EXTERNAL_RESOURCES,
+  isInPage,
   searchExternal,
   type ExternalCategoryId,
   type ExternalResource,
@@ -40,7 +41,7 @@ export default function ExternalLibrary({
   if (cat !== "all") list = list.filter((r) => r.category === cat);
 
   function open(r: ExternalResource) {
-    if (r.embedUrl) setActive(r);
+    if (isInPage(r)) setActive(r);
     else window.open(r.url, "_blank", "noopener,noreferrer");
   }
 
@@ -94,7 +95,7 @@ export default function ExternalLibrary({
                   <span className="text-3xl">{r.emoji}</span>
                   <span className="font-pixel text-[10px] leading-tight text-paper">{r.title}</span>
                   <span className="text-[11px] leading-snug text-paper/55">{r.description}</span>
-                  {!r.embedUrl && <span className="mt-0.5 text-[10px] text-gold2">opens in new tab ↗</span>}
+                  {!isInPage(r) && <span className="mt-0.5 text-[10px] text-gold2">opens in new tab ↗</span>}
                 </button>
               ))}
           </div>

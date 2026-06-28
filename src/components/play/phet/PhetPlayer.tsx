@@ -35,11 +35,12 @@ export default function PhetPlayer({
   }
 
   return (
-    <div className="space-y-2">
+    <div style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }} className="space-y-2 px-2 sm:px-4">
+      <div className="mx-auto" style={{ maxWidth: 1800 }}>
       <div
         ref={wrapRef}
-        className="relative mx-auto w-full overflow-hidden rounded-2xl border-4 border-black/50 bg-black shadow-pixel"
-        style={{ aspectRatio: "5 / 3", minHeight: 360 }}
+        className="relative w-full overflow-hidden rounded-2xl border-4 border-black/50 bg-black shadow-pixel"
+        style={{ height: "calc(100dvh - 165px)", minHeight: 380 }}
       >
         {!loaded && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-paneldark/95 text-paper/70">
@@ -94,6 +95,7 @@ export default function PhetPlayer({
       <p className="text-center text-[10px] text-paper/40">
         {title} — a PhET simulation (University of Colorado Boulder).
       </p>
+      </div>
     </div>
   );
 }
