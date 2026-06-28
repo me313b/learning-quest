@@ -19,6 +19,7 @@ interface Body {
   coveredThisWeek?: string[];
   language?: "en" | "fr";
   reasoning?: boolean;
+  avoid?: string[];
 }
 
 export async function POST(req: Request) {
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
       body.coveredThisWeek || [],
       body.language === "fr" ? "fr" : "en",
       Boolean(body.reasoning),
+      Array.isArray(body.avoid) ? body.avoid : [],
     );
     if (q) return NextResponse.json({ question: q });
   }

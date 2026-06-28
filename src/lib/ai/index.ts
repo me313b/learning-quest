@@ -261,6 +261,7 @@ export async function generateQuestion(
   coveredThisWeek: string[] = [],
   language: "en" | "fr" = "en",
   reasoning = false,
+  avoid: string[] = [],
 ): Promise<Question | null> {
   const user = buildQuestionUser(
     subject,
@@ -271,6 +272,7 @@ export async function generateQuestion(
     coveredThisWeek,
     language,
     reasoning,
+    avoid,
   );
   // Try twice: models occasionally return malformed JSON or a question that
   // doesn't fit its type. One retry fixes nearly all of these; if both fail the
@@ -1001,4 +1003,34 @@ export async function coachAnswer(
   } catch {
     return null;
   }
+}
+
+import { FACTS_GEN_SYSTEM, buildFactsUser } from "./prompts";
+
+/** Generate a batch of fresh, kid-friendly fun facts for a category, avoiding
+ *  any the child has already seen. Returns [] on any failure (caller falls back
+ *  to the built-in fact bank). */
+export async function generateFacts(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  category: string,
+  recent: string[] = [],
+  count = 8,
+): Promise<string[]> {
+  const user = buildFactsUser(category, recent, count);
+  try {
+    const raw = await chat(provider, apiKey, model, FACTS_GEN_SYSTEM, user, { maxTokens: 600 });
+    const data = extractJson(raw);
+    const facts = (data as { facts?: unknown })?.facts;
+    if (Array.isArray(facts)) {
+      return facts
+        .map((f) => String(f).trim())
+        .filter((f) => f.length > 0)
+        .slice(0, count);
+    }
+  } catch {
+    /* fall through */
+  }
+  return [];
 }

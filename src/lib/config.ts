@@ -104,14 +104,16 @@ export const MAX_DIFFICULTY = 10;
 export const QUESTIONS_PER_SUBJECT = 4;
 export const SECONDS_PER_QUESTION = 60;
 
-// Parent-declared strength maps to a sensible *starting* difficulty floor.
+// Parent-declared strength maps to a sensible *starting* difficulty floor. We
+// deliberately start high (a real stretch) and let the adaptive engine ease the
+// difficulty down only if the child gets one wrong, rather than starting easy.
 export const STRENGTH_START: Record<Strength, number> = {
-  needs_practice: 2,
-  on_track: 3,
-  strong: 5,
-  very_strong: 6,
+  needs_practice: 4,
+  on_track: 6,
+  strong: 7,
+  very_strong: 8,
 };
-export const DEFAULT_START_DIFFICULTY = 3;
+export const DEFAULT_START_DIFFICULTY = 6;
 
 export const STRENGTH_LABELS: Record<Strength, string> = {
   needs_practice: "Needs practice",

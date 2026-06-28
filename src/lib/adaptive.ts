@@ -30,9 +30,11 @@ export function startDifficulty(
 ): number {
   const floor = STRENGTH_START[strengths?.[subject]] ?? DEFAULT_START_DIFFICULTY;
   const demonstrated = ability?.[subject];
-  if (demonstrated == null) return clamp(floor); // no history yet
-  // 70% what they've shown they can do, 30% the declared baseline.
-  return clamp(demonstrated * 0.7 + floor * 0.3);
+  // No history: open with a real stretch (one above the floor) and let it ease
+  // down if needed.
+  if (demonstrated == null) return clamp(floor + 1);
+  // Mostly what they've shown they can do, nudged up so it always opens hard.
+  return clamp(demonstrated * 0.8 + floor * 0.2 + 1);
 }
 
 export function nextDifficulty(current: number, verdict: Verdict): number {

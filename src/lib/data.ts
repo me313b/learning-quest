@@ -214,6 +214,34 @@ export async function todayAttempts(profileId: string): Promise<Attempt[]> {
   return (data as Attempt[]) || [];
 }
 
+/** The most recently asked question prompts for a subject, newest first. Passed
+ *  to the generator so it never reuses or lightly rewords a recent question. */
+export async function recentPrompts(
+  profileId: string,
+  subject: string,
+  limit = 16,
+): Promise<string[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("attempts")
+    .select("prompt, created_at")
+    .eq("profile_id", profileId)
+    .eq("subject", subject)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const row of (data as { prompt?: string }[]) || []) {
+    const p = (row.prompt || "").trim();
+    if (p && !seen.has(p)) {
+      seen.add(p);
+      out.push(p);
+    }
+  }
+  return out;
+}
+
 /** Skills the child has missed and not yet cleared, most-missed first. Used to
  *  seed the first question or two of a subject so today fixes yesterday. */
 export async function unresolvedSkills(

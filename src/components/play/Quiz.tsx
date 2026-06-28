@@ -6,6 +6,7 @@ import {
   getKidSettings,
   getOrCreateTodaySession,
   persistAbility,
+  recentPrompts,
   recentTopics,
   recordAttempt,
   todayAttempts,
@@ -13,6 +14,7 @@ import {
   updateSession,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
+import { useHandsFree } from "@/lib/french/useHandsFree";
 import { checkObjective, nextDifficulty, startDifficulty, updateAbility } from "@/lib/adaptive";
 import { earnedMinutesFromAttempts } from "@/lib/rewards";
 import { fallbackQuestion, randomEncourage, randomFact, randomPraise } from "@/lib/content";
@@ -164,6 +166,8 @@ export default function Quiz({
   const [kid, setKid] = useState({ questionSeconds: 60, allowOvertime: true, funMode: true });
   const kidRef = useRef(kid);
   kidRef.current = kid;
+  const { listen: listenAnswer, status: recStatus, level: recLevel } = useHandsFree();
+  const [recording, setRecording] = useState(false);
 
   // Refs mirror the state that async callbacks (timer, grading) need to read.
   const phaseRef = useRef<Phase>("loading");
@@ -173,6 +177,7 @@ export default function Quiz({
   const difficultyRef = useRef(3);
   const seedsRef = useRef<string[]>([]);
   const sessionIdRef = useRef<string | null>(null);
+  const askedPromptsRef = useRef<string[]>([]);
   const abilityRef = useRef<Record<string, number>>({ ...(profile.ability || {}) });
   const answerRef = useRef("");
   const choiceRef = useRef("");
@@ -343,6 +348,17 @@ export default function Quiz({
     } catch {
       covered = [];
     }
+    // Build the "do not repeat" list from this session plus recent history.
+    let avoid: string[] = [...askedPromptsRef.current];
+    try {
+      const past = await recentPrompts(profile.id, s, 16);
+      avoid = Array.from(new Set([...avoid, ...past]));
+    } catch {
+      /* session list still helps */
+    }
+
+    // The French subject is always taught in French, whatever the global setting.
+    const lang: "en" | "fr" = s === "french" ? "fr" : language;
 
     let q: Question | null = null;
     try {
@@ -357,8 +373,9 @@ export default function Quiz({
           recentTopics: recent,
           targetSkills,
           coveredThisWeek: covered,
-          language,
+          language: lang,
           reasoning: isLast,
+          avoid: avoid.slice(0, 24),
         }),
       });
       const data = await res.json();
@@ -367,6 +384,7 @@ export default function Quiz({
       q = null;
     }
     if (!q) q = fallbackQuestion(s, diff, toChildProfile(profile));
+    if (q.prompt) askedPromptsRef.current = [q.prompt, ...askedPromptsRef.current].slice(0, 30);
 
     questionRef.current = q;
     setQuestion(q);
@@ -686,6 +704,28 @@ export default function Quiz({
         ? choice.trim().length > 0
         : answer.trim().length > 0);
 
+  // Let the child SAY a longer answer instead of typing — only for science and
+  // for questions that ask them to explain (where talking is easier than writing).
+  async function recordAnswer() {
+    if (recording || !question) return;
+    setRecording(true);
+    const res = await listenAnswer(20000, { language: "en", silenceMs: 4000 });
+    setRecording(false);
+    const said = (res?.text || "").trim();
+    if (said) {
+      const next = answer ? `${answer} ${said}` : said;
+      setAnswer(next);
+      answerRef.current = next;
+    }
+  }
+
+  const canRecordAnswer =
+    question != null &&
+    (question.type === "short_text" || question.type === "open") &&
+    (currentSubject === "science" ||
+      currentSubject === "physics" ||
+      /\b(why|how|explain|describe|because)\b/i.test(question.prompt || ""));
+
   return (
     <div className="relative mx-auto max-w-3xl space-y-5">
       {celebrate && <Confetti />}
@@ -825,17 +865,36 @@ export default function Quiz({
           )}
 
           {(question.type === "short_text" || question.type === "open") && (
-            <textarea
-              className="mc-input text-base"
-              rows={2}
-              value={answer}
-              onChange={(e) => {
-                setAnswer(e.target.value);
-                answerRef.current = e.target.value;
-              }}
-              placeholder="Write your answer"
-              autoFocus
-            />
+            <div className="space-y-2">
+              <textarea
+                className="mc-input text-base"
+                rows={2}
+                value={answer}
+                onChange={(e) => {
+                  setAnswer(e.target.value);
+                  answerRef.current = e.target.value;
+                }}
+                placeholder="Write your answer"
+                autoFocus
+              />
+              {canRecordAnswer && (
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    onClick={recordAnswer}
+                    disabled={recording}
+                    className="rounded-xl border-2 border-diamond/50 bg-diamond/10 px-4 py-2 text-sm text-diamond disabled:opacity-70"
+                  >
+                    {recording ? "🎙️ Listening… say your answer" : "🎤 Or say your answer"}
+                  </button>
+                  {recording && (
+                    <div className="h-2 w-40 overflow-hidden rounded-full bg-paper/15">
+                      <div className="h-full rounded-full bg-diamond" style={{ width: `${Math.round(recLevel * 100)}%` }} />
+                    </div>
+                  )}
+                  {recStatus === "thinking" && <p className="text-[11px] text-paper/50">Writing down what you said…</p>}
+                </div>
+              )}
+            </div>
           )}
 
           {question.type === "creative" && (

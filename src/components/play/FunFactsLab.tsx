@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { FACT_CATEGORIES } from "@/lib/content";
 import { chime, speakSmart, stopAllSpeech } from "@/lib/speech";
 
-// Shuffle helper that keeps a per-category running order so facts don't repeat
-// until the whole list has been seen.
 function shuffled<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -21,16 +19,18 @@ export default function FunFactsLab({ onBack }: { onBack: () => void }) {
   const [catId, setCatId] = useState("all");
   const [fact, setFact] = useState("");
   const [emoji, setEmoji] = useState("✨");
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const queueRef = useRef<string[]>([]);
   const posRef = useRef(0);
+  const seenRef = useRef<Set<string>>(new Set());
+  const catRef = useRef("all");
+  const toppingRef = useRef(false);
+  const liveRef = useRef(true);
 
-  function buildQueue(id: string): string[] {
-    if (id === "all") {
-      const merged = FACT_CATEGORIES.flatMap((c) => c.facts);
-      return shuffled(merged);
-    }
-    const cat = FACT_CATEGORIES.find((c) => c.id === id);
-    return shuffled(cat?.facts || []);
+  function bankFacts(id: string): string[] {
+    if (id === "all") return shuffled(FACT_CATEGORIES.flatMap((c) => c.facts));
+    return shuffled(FACT_CATEGORIES.find((c) => c.id === id)?.facts || []);
   }
 
   function emojiFor(id: string): string {
@@ -38,30 +38,77 @@ export default function FunFactsLab({ onBack }: { onBack: () => void }) {
     return FACT_CATEGORIES.find((c) => c.id === id)?.emoji || "✨";
   }
 
-  function showNext(id = catId, speak = true) {
-    if (queueRef.current.length === 0 || posRef.current >= queueRef.current.length) {
-      queueRef.current = buildQueue(id);
-      posRef.current = 0;
+  function pushUnique(list: string[]) {
+    for (const f of list) {
+      const key = f.trim().toLowerCase();
+      if (!key) continue;
+      const already =
+        seenRef.current.has(key) || queueRef.current.some((q) => q.trim().toLowerCase() === key);
+      if (!already) queueRef.current.push(f);
     }
-    const next = queueRef.current[posRef.current] || "Did you know learning new things makes your brain grow?";
+  }
+
+  // Fetch a fresh batch of AI facts for the category. Falls back to the built-in
+  // bank when there's no key, so it always keeps going.
+  async function topUp(id: string) {
+    if (toppingRef.current) return;
+    toppingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const cat = FACT_CATEGORIES.find((c) => c.id === id);
+      const res = await fetch("/api/facts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          category: id === "all" ? "all" : cat?.label || id,
+          recent: Array.from(seenRef.current).slice(-40),
+          count: 8,
+        }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data.facts) && data.facts.length) pushUnique(data.facts);
+      else pushUnique(bankFacts(id));
+    } catch {
+      pushUnique(bankFacts(id));
+    } finally {
+      toppingRef.current = false;
+      if (liveRef.current) setLoadingMore(false);
+    }
+  }
+
+  function showNext(speak = true) {
+    if (posRef.current >= queueRef.current.length) {
+      pushUnique(bankFacts(catRef.current)); // never leave a gap
+    }
+    const next = queueRef.current[posRef.current] || "Learning new things makes your brain grow!";
     posRef.current += 1;
-    const e = emojiFor(id);
+    seenRef.current.add(next.trim().toLowerCase());
     setFact(next);
-    setEmoji(e);
+    setEmoji(emojiFor(catRef.current));
     if (speak) speakSmart(`Did you know? ${next}`, "en-GB");
+    if (posRef.current >= queueRef.current.length - 3) topUp(catRef.current);
   }
 
   function pickCategory(id: string) {
     setCatId(id);
-    queueRef.current = buildQueue(id);
+    catRef.current = id;
+    queueRef.current = bankFacts(id).slice(0, 6); // instant buffer
     posRef.current = 0;
-    showNext(id, true);
+    showNext(true);
+    topUp(id); // pull fresh AI facts in the background
   }
 
   useEffect(() => {
-    queueRef.current = buildQueue("all");
-    showNext("all", false);
-    return () => stopAllSpeech();
+    liveRef.current = true;
+    catRef.current = "all";
+    queueRef.current = bankFacts("all").slice(0, 6);
+    posRef.current = 0;
+    showNext(false);
+    topUp("all");
+    return () => {
+      liveRef.current = false;
+      stopAllSpeech();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,7 +165,7 @@ export default function FunFactsLab({ onBack }: { onBack: () => void }) {
       </div>
 
       <p className="text-center text-[11px] text-paper/40">
-        Over {FACT_CATEGORIES.reduce((n, c) => n + c.facts.length, 0)} facts to discover.
+        {loadingMore ? "Finding more amazing facts…" : "Fresh facts every time — never-ending!"}
       </p>
     </div>
   );

@@ -28,6 +28,7 @@ export function buildQuestionUser(
   coveredThisWeek: string[] = [],
   language: "en" | "fr" = "en",
   reasoning = false,
+  avoid: string[] = [],
 ): string {
   const meta = SUBJECTS[subject];
   const band = DIFFICULTY_BANDS[Math.round(difficulty)] ?? "";
@@ -73,14 +74,39 @@ export function buildQuestionUser(
     'thinking, say WHY, or describe HOW they would work it out, in a short sentence (e.g. "Why ' +
     'do you think...", "How would you...", "Explain how you know..."). It must need a written ' +
     "explanation, not just a number. Mark generously: accept any answer showing sensible reasoning.";
-  const formatRule = reasoning ? reasoningRule : typeRules[meta.grading];
+
+  // Reading & Writing deserves genuinely meaningful tasks, not "write a sentence
+  // with a capital letter and a full stop". Rotate through real comprehension,
+  // vocabulary, inference and substantive writing, scaled to the level.
+  const readingRule =
+    '"type" must be "short_text". Make it a GENUINELY useful literacy task for a strong young reader, ' +
+    "and VARY which kind you pick each time: (a) give a short 1-2 sentence passage then ask a " +
+    "comprehension or INFERENCE question about it (how a character feels and why, what might happen " +
+    "next, what a word means in context); (b) a vocabulary task (a synonym, an antonym, or using an " +
+    "interesting word in a sentence); (c) a punctuation/grammar-in-context fix; or (d) a substantive " +
+    "WRITING prompt that needs a real idea (describe, explain, persuade, or continue a tiny story in " +
+    "one or two sentences). Avoid trivial copy-the-rule tasks. Put any passage to read inside the " +
+    "prompt. Mark on meaning and effort, not perfect spelling.";
+
+  let formatRule: string;
+  if (reasoning) formatRule = reasoningRule;
+  else if (subject === "reading") formatRule = readingRule;
+  else formatRule = typeRules[meta.grading];
 
   const langLine =
     language === "fr"
-      ? "LANGUAGE: write the whole question (prompt AND any options) in SIMPLE French suitable for " +
-        "a 6-7 year old just starting French. Keep vocabulary basic and short. The 'hint' and " +
-        "'solution' may be in English so a grown-up can follow."
+      ? "LANGUAGE: this is the French subject, so write EVERYTHING the child reads — the prompt AND " +
+        "all multiple-choice options — in SIMPLE, correct French suitable for a 6-7 year old. Do NOT " +
+        "write the question in English. Keep vocabulary basic and short. Only the 'hint' and " +
+        "'solution' (for the grown-up) may be in English."
       : "LANGUAGE: write the question in clear, simple English.";
+
+  const avoidList = avoid.filter(Boolean).slice(0, 24);
+  const avoidLine = avoidList.length
+    ? `\nDO NOT REPEAT: the child has recently been asked the questions below. Do NOT reuse or lightly ` +
+      `reword any of them — make something clearly different (different numbers, context AND idea):\n- ` +
+      avoidList.join("\n- ")
+    : "";
 
   const frenchAudio =
     subject === "french"
@@ -101,10 +127,11 @@ ${focusLine}
 ${coverageLine}
 ${themeLine}
 ${langLine}${frenchAudio}
-Avoid these recently-used topics: ${recent}.
+Avoid these recently-used topics: ${recent}.${avoidLine}
 
-CHALLENGE: make it need a little thinking — a small word problem, a two-step calculation, a
-comparison, or a "what comes next" — not a trivial one-liner. Keep it fair for the age and level.
+CHALLENGE: aim HIGH for the band — a multi-step word problem, a two-step calculation, a comparison,
+a pattern, or a "what comes next" with a twist, not a trivial one-liner. It should make a bright
+child pause and think. Keep it fair for the level but do not dumb it down.
 LENGTH: "prompt" can be one to three short sentences (a small scenario is good). Plain words.
 FORMAT: ${formatRule}
 
@@ -670,3 +697,26 @@ export const COACH_ASK_SYSTEM =
   "IMPORTANT: if the child's question is in French, answer in French FIRST, then add a " +
   "short English translation in brackets afterwards. Otherwise answer in English. " +
   "Reply with plain text only (no JSON, no markdown).";
+
+// --- Unlimited fun facts ---------------------------------------------------
+export const FACTS_GEN_SYSTEM =
+  "You write delightful, TRUE fun facts for a curious 6-7 year old. Each fact is ONE short " +
+  "sentence, genuinely accurate, surprising and easy to understand, with absolutely no scary, " +
+  "violent or unsafe content. Vary them widely. Reply with ONLY valid JSON.";
+
+export function buildFactsUser(category: string, recent: string[], count = 8): string {
+  const theme =
+    !category || category === "all" || category === "everything"
+      ? "any topic a child loves (animals, space, the human body, science, our world, numbers, dinosaurs, food, weather)"
+      : category;
+  const avoid = recent.filter(Boolean).slice(0, 40);
+  const avoidLine = avoid.length
+    ? `Do NOT repeat or closely echo any of these already-seen facts:\n- ${avoid.join("\n- ")}`
+    : "";
+  return `Give me ${count} brand-new fun facts about: ${theme}.
+Each must be true, kid-friendly, one short sentence, and clearly different from the others.
+${avoidLine}
+
+Return JSON with EXACTLY this shape:
+{ "facts": ["fact one", "fact two"] }`;
+}
