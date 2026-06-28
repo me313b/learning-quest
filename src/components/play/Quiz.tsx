@@ -249,7 +249,6 @@ export default function Quiz({
     if (phase !== "question" || !question) return;
     const isFrench = language === "fr" || currentSubject === "french";
     const text = question.displayText || question.prompt;
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
     const open = isOpenWriting(question);
     let alive = true;
 
@@ -262,7 +261,8 @@ export default function Quiz({
         // No proper French audio supplied: stay silent rather than read an
         // English instruction in a French accent, which would teach the wrong
         // sound.
-      } else if (words > 10) {
+      } else {
+        // Read the question aloud so a young child can follow it, however short.
         await speakSmart(text, "en-GB");
       }
       if (alive && open && question.type !== "creative") {

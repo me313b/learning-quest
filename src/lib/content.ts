@@ -262,11 +262,11 @@ function mathsQuestion(level: number): Question {
       });
     }
     default: {
-      const pick = randInt(1, 3);
+      const pick = randInt(1, 4);
       if (pick === 1) {
-        // Number series (arithmetic): find the next term. Bigger steps higher up.
-        const start = randInt(2, 9);
-        const step = randInt(2, 9) + (level >= 12 ? randInt(2, 6) : 0);
+        // Arithmetic series with a non-trivial step (bigger at higher levels).
+        const start = randInt(3, 12);
+        const step = level >= 12 ? randInt(6, 14) : randInt(3, 9);
         const seq = [start, start + step, start + 2 * step, start + 3 * step];
         return q({
           type: "numeric",
@@ -279,33 +279,57 @@ function mathsQuestion(level: number): Question {
         });
       }
       if (pick === 2) {
-        // Two-step "work backwards" with larger numbers at higher levels.
-        const mag = level >= 12 ? 14 : 9;
-        const x = randInt(4, mag);
-        const mult = randInt(3, level >= 12 ? 9 : 6);
-        const add = randInt(5, 30);
-        const result = x * mult + add;
+        // Two-step "work backwards" — subtraction makes it a little harder, with
+        // larger numbers at higher levels.
+        const mag = level >= 12 ? 20 : 12;
+        const x = randInt(5, mag);
+        const mult = randInt(3, level >= 12 ? 12 : 7);
+        const sub = randInt(5, 40);
+        const result = x * mult - sub;
         return q({
           type: "numeric",
           topic: "missing number",
           skill: "word problems (multi-step)",
           difficulty: level,
-          prompt: `A number is multiplied by ${mult}, then ${add} is added, giving ${result}. What is the number?`,
+          prompt: `A number is multiplied by ${mult}, then ${sub} is taken away, giving ${result}. What is the number?`,
           answer: String(x),
-          solution: `Work backwards: (${result} − ${add}) ÷ ${mult} = ${x}.`,
+          solution: `Work backwards: (${result} + ${sub}) ÷ ${mult} = ${x}.`,
         });
       }
-      // Doubling series at the very top.
-      const base = randInt(2, 5);
-      const seq = [base, base * 2, base * 4, base * 8];
+      if (pick === 3) {
+        // Increasing-difference pattern: the gaps grow by 2 each time (needs real
+        // insight, not just "spot the doubling").
+        const a0 = randInt(1, 6);
+        const d = randInt(2, 6);
+        const a1 = a0 + d;
+        const a2 = a1 + (d + 2);
+        const a3 = a2 + (d + 4);
+        const next = a3 + (d + 6);
+        return q({
+          type: "numeric",
+          topic: "number series",
+          skill: "number series and what comes next",
+          difficulty: level,
+          prompt: `What comes next? ${a0}, ${a1}, ${a2}, ${a3}, ?`,
+          answer: String(next),
+          solution: `The gaps grow by 2 each time (${d}, ${d + 2}, ${d + 4}, then ${d + 6}), so the next number is ${next}.`,
+        });
+      }
+      // Add-the-two-before-it pattern (Fibonacci style) — genuinely tricky.
+      const f0 = randInt(1, 4);
+      const f1 = randInt(2, 6);
+      const f2 = f0 + f1;
+      const f3 = f1 + f2;
+      const f4 = f2 + f3;
+      const f5 = f3 + f4;
       return q({
         type: "numeric",
         topic: "number series",
         skill: "number series and what comes next",
         difficulty: level,
-        prompt: `What comes next? ${seq.join(", ")}, ?`,
-        answer: String(base * 16),
-        solution: `Each number doubles, so the next one is ${base * 16}.`,
+        prompt: `What comes next? ${f0}, ${f1}, ${f2}, ${f3}, ${f4}, ?`,
+        answer: String(f5),
+        solution: `Each number is the two before it added together, so ${f3} + ${f4} = ${f5}.`,
       });
     }
   }
