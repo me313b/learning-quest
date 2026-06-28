@@ -26,15 +26,16 @@ function q(partial: Partial<Question>): Question {
 }
 
 describe("startDifficulty", () => {
-  it("uses the default when there is no history or strength", () => {
-    expect(startDifficulty("maths", {}, {})).toBe(3);
+  it("opens above the default when there is no history or strength", () => {
+    // Default floor is 6; with no history we open one above it for a stretch.
+    expect(startDifficulty("maths", {}, {})).toBe(7);
   });
 
-  it("leans on demonstrated ability when present", () => {
-    // 70% of 8 + 30% of 3 = 5.6 + 0.9 = 6.5 -> rounds to 7 (or 6)
+  it("leans on demonstrated ability when present, biased upward", () => {
+    // 0.8*8 + 0.2*6 + 1 = 6.4 + 1.2 + 1 = 8.6 -> rounds to 9
     const d = startDifficulty("maths", {}, { maths: 8 });
-    expect(d).toBeGreaterThanOrEqual(6);
-    expect(d).toBeLessThanOrEqual(7);
+    expect(d).toBeGreaterThanOrEqual(8);
+    expect(d).toBeLessThanOrEqual(10);
   });
 
   it("stays within 1..10", () => {
