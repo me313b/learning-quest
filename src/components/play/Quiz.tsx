@@ -450,7 +450,11 @@ export default function Quiz({
     }
 
     const local = checkObjective(q, userAnswerText);
-    if (local === "correct" || local === "incorrect") {
+    const frenchOpen = s === "french" && q.type === "short_text";
+    // Accept a clear local match instantly. For French sentences, if the exact
+    // check says "incorrect", let the AI decide — the child may have used a
+    // perfectly valid alternative phrasing that an exact match would miss.
+    if (local === "correct" || (local === "incorrect" && !frenchOpen)) {
       return {
         verdict: local,
         correctAnswer,
@@ -714,7 +718,8 @@ export default function Quiz({
   async function recordAnswer() {
     if (recording || !question) return;
     setRecording(true);
-    const res = await listenAnswer(20000, { language: "en", silenceMs: 4000 });
+    const lang = currentSubject === "french" || language === "fr" ? "fr" : "en";
+    const res = await listenAnswer(20000, { language: lang, silenceMs: 4000 });
     setRecording(false);
     const said = (res?.text || "").trim();
     if (said) {
@@ -729,6 +734,8 @@ export default function Quiz({
     (question.type === "short_text" || question.type === "open") &&
     (currentSubject === "science" ||
       currentSubject === "physics" ||
+      currentSubject === "french" ||
+      language === "fr" ||
       /\b(why|how|explain|describe|because)\b/i.test(question.prompt || ""));
 
   const isFrenchQ = language === "fr" || currentSubject === "french";
@@ -929,7 +936,13 @@ export default function Quiz({
                     disabled={recording}
                     className="rounded-xl border-2 border-diamond/50 bg-diamond/10 px-4 py-2 text-sm text-diamond disabled:opacity-70"
                   >
-                    {recording ? "🎙️ Listening… say your answer" : "🎤 Or say your answer"}
+                    {recording
+                      ? isFrenchQ
+                        ? "🎙️ Listening… say it in French"
+                        : "🎙️ Listening… say your answer"
+                      : isFrenchQ
+                        ? "🎤 Or say it in French"
+                        : "🎤 Or say your answer"}
                   </button>
                   {recording && (
                     <div className="h-2 w-40 overflow-hidden rounded-full bg-paper/15">

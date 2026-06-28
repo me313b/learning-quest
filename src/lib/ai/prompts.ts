@@ -7,17 +7,18 @@ import { DIFFICULTY_BANDS, SKILL_AREAS, SUBJECTS } from "../config";
 import type { ChildProfile, Question } from "../types";
 
 export const QGEN_SYSTEM =
-  "You are a world-class tutor and assessment designer for bright young " +
-  "children. You write ONE question at a time that makes the child genuinely " +
-  "THINK and reason, never rote recall or busywork. Avoid bare facts and plain " +
-  "sums like '4 times 5'; instead prefer little word problems, puzzles, " +
-  "patterns and 'what comes next', comparisons, simple logic, and two-step " +
-  "reasoning, pitched precisely to the band requested. Keep the LANGUAGE simple " +
-  "and easy for a 6-7 year old to read, but make the THINKING a real, satisfying " +
-  "challenge. A question may be one to three short sentences and can set a tiny " +
-  "scenario when that makes the problem richer, but never a long story. Vary the " +
-  "everyday context; do not theme every question around the same thing. You " +
-  "output STRICT JSON and nothing else: no prose, no code fences.";
+  "You are a world-class tutor and competition-question designer for bright young " +
+  "children. You write ONE genuinely SMART question at a time that makes the child " +
+  "really THINK — never rote recall or busywork. Favour clever little puzzles, " +
+  "multi-step reasoning, number patterns and 'what comes next', logical deduction, " +
+  "comparisons, spotting a relationship, working backwards, and problems with a small " +
+  "twist or 'aha' moment, pitched precisely to the band requested. Avoid bare facts, " +
+  "plain sums like '4 times 5', and predictable, formulaic templates — vary the SHAPE " +
+  "of the reasoning, not just the numbers. Keep the LANGUAGE simple and easy for a 6-7 " +
+  "year old to read, but make the THINKING a real, satisfying challenge. A question may " +
+  "be one to three short sentences and can set a tiny scenario when that makes the " +
+  "problem richer, but never a long story. Vary the context; do not theme every question " +
+  "around the same thing. You output STRICT JSON and nothing else: no prose, no code fences.";
 
 export function buildQuestionUser(
   subject: string,
@@ -60,15 +61,23 @@ export function buildQuestionUser(
 
   // Theme: lean into a friendly Minecraft world (the child loves it), kept gentle
   // and non-violent, while still varying the maths/skill underneath.
+  const otherThemes =
+    "space and planets, dinosaurs, wild animals and the ocean, football and sports, superheroes, " +
+    "pirates and treasure, cooking and food, nature and the seasons, building and machines, magic and " +
+    "dragons, cars and rockets, and everyday real-life situations (shops, parties, journeys, pocket money)";
   const themeLine = likes
-    ? `THEMING: give about two questions in three a friendly Minecraft flavour — mining diamonds and emeralds, ` +
-      "building with blocks, planting wheat, taming animals, filling chests, crafting tools, counting sheep/pigs/cows, " +
-      "trading with villagers. Keep it gentle and fun (no fighting or scary content). You may also reference " +
-      `what they like (${likes}). Mix in a plain everyday context now and then so it stays fresh. Vary the setting each time.`
-    : "THEMING: give about two questions in three a friendly Minecraft flavour — mining diamonds and emeralds, " +
-      "building with blocks, planting wheat, taming animals, filling chests, crafting tools, counting sheep/pigs/cows, " +
-      "trading with villagers. Keep it gentle and fun (no fighting or scary content). Mix in a plain everyday context " +
-      "now and then so it stays fresh. Vary the setting each time.";
+    ? "THEMING: keep it varied. Only about ONE question in THREE should have a friendly Minecraft " +
+      "flavour (mining diamonds/emeralds, building with blocks, planting wheat, taming animals, " +
+      "filling chests, crafting tools, counting sheep/pigs/cows, trading with villagers — gentle and " +
+      "fun, no fighting or scary content). For the OTHER two in three, use a DIFFERENT, fresh context " +
+      `each time from a wide range such as ${otherThemes}. Also weave in what they like (${likes}). ` +
+      "Never theme several questions in a row around the same thing."
+    : "THEMING: keep it varied. Only about ONE question in THREE should have a friendly Minecraft " +
+      "flavour (mining diamonds/emeralds, building with blocks, planting wheat, taming animals, " +
+      "filling chests, crafting tools, counting sheep/pigs/cows, trading with villagers — gentle and " +
+      "fun, no fighting or scary content). For the OTHER two in three, use a DIFFERENT, fresh context " +
+      `each time from a wide range such as ${otherThemes}. Never theme several questions in a row ` +
+      "around the same thing.";
 
   const reasoningRule =
     '"type" must be "short_text". Make it a REASONING question: ask the child to explain their ' +
@@ -98,10 +107,29 @@ export function buildQuestionUser(
     "not a one-liner. For reading, include a short passage in the prompt and ask a comprehension or " +
     "inference question with four answer choices. Put the full question and all four options in the prompt-appropriate fields.";
 
+  // French: sentence-level tasks for a child who already knows simple words.
+  // Critically, a phrase the child must translate INTO French stays in English
+  // and is never spoken; only genuine, non-answer French ever goes to audio.
+  const frenchRule =
+    '"type" must be "short_text" (the child SPEAKS or writes the answer). Build a GENUINELY useful ' +
+    "French task for a child who already knows simple words and is ready for short SENTENCES, scaled " +
+    "to the band (a few words at low bands, fuller sentences higher up). Rotate between: " +
+    '(a) TRANSLATE TO FRENCH — show a short ENGLISH sentence for the child to put into French (KEEP ' +
+    'that sentence in English, e.g. "I am happy", "The cat is black", "I would like an apple"); the ' +
+    'child produces the French; put the French in "answer" with variants in "acceptable"; set ' +
+    '"audioText" to "" so the answer is never spoken and English is never read aloud. ' +
+    "(b) UNDERSTAND FRENCH — give a short FRENCH sentence and ask what it means in English (English " +
+    'answer); put that French sentence in BOTH the prompt and "audioText". ' +
+    "(c) COMPLETE or reorder a short French sentence. " +
+    'ABSOLUTE AUDIO RULE: "audioText" must contain ONLY French that is correct to read aloud, and ' +
+    "NEVER the answer and NEVER any English. Everything the child reads is in French EXCEPT a source " +
+    "phrase being translated, which stays in its original language.";
+
   let formatRule: string;
   if (worksheet) formatRule = worksheetRule;
   else if (reasoning) formatRule = reasoningRule;
   else if (subject === "reading") formatRule = readingRule;
+  else if (subject === "french") formatRule = frenchRule;
   else formatRule = typeRules[meta.grading];
 
   // Maths gets extra variety: series, patterns, logic and the occasional trick.
@@ -117,10 +145,10 @@ export function buildQuestionUser(
 
   const langLine =
     language === "fr"
-      ? "LANGUAGE: this is the French subject, so write EVERYTHING the child reads — the prompt AND " +
-        "all multiple-choice options — in SIMPLE, correct French suitable for a 6-7 year old. Do NOT " +
-        "write the question in English. Keep vocabulary basic and short. Only the 'hint' and " +
-        "'solution' (for the grown-up) may be in English."
+      ? "LANGUAGE: this is French. Write the child-facing instruction in SIMPLE French. The ONLY " +
+        "exception is a short SOURCE phrase the child must translate INTO French — keep that phrase " +
+        "in English. NEVER write the French answer in the prompt. Keep the 'hint' and 'solution' " +
+        "(for the grown-up) in English."
       : "LANGUAGE: write the question in clear, simple English.";
 
   const avoidList = avoid.filter(Boolean).slice(0, 24);
@@ -164,9 +192,9 @@ Return JSON with EXACTLY these keys:
   "skill": "the specific skill area being tested, lower-case (use one of the areas above)",
   "difficulty": ${difficulty},
   "prompt": "the question, clear for the age",
-  "displayText": "for French: the English instruction; otherwise same as prompt",
-  "audioText": "for French: ONLY the French to speak; otherwise empty string",
-  "audioLanguage": "fr-FR for French, otherwise empty string",
+  "displayText": "for French: the child-facing question text (French instruction; keep any to-translate source phrase in English). Otherwise the same as prompt",
+  "audioText": "for French: ONLY French that is safe to read aloud (NEVER English, NEVER the answer); empty string if there is no safe French to speak. Otherwise empty string",
+  "audioLanguage": "fr-FR when audioText is French, otherwise empty string",
   "listening": false,
   "options": ["A","B","C","D"],
   "answer": "the single correct answer (option text, or the number, or '' for creative)",
@@ -190,11 +218,19 @@ export function buildGradeUser(
   profile: ChildProfile,
 ): string {
   const meta = SUBJECTS[subject];
+  const acc = (question.acceptable || []).filter(Boolean);
+  const accLine = acc.length ? `\nALSO ACCEPTABLE: ${acc.join(" | ")}` : "";
+  const frenchNote =
+    subject === "french"
+      ? "\nThis is French. Accept ANY correct French translation, including valid synonyms and the " +
+        "gender or spelling a child might reasonably use; ignore missing accents and small spelling " +
+        "or speech-to-text slips. Mark on MEANING, not perfection, and be encouraging."
+      : "";
   return `Mark this ${meta.label} answer from a child age ${profile.age}.
 
 QUESTION: ${question.prompt}
-EXPECTED (guide, may be empty for open writing): ${question.answer}
-CHILD'S ANSWER: ${JSON.stringify(userAnswer)}
+EXPECTED (guide, may be empty for open writing): ${question.answer}${accLine}
+CHILD'S ANSWER: ${JSON.stringify(userAnswer)}${frenchNote}
 
 Reply in JSON ONLY:
 {
