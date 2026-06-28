@@ -40,6 +40,7 @@ export default function DailyReview({
   const [heard, setHeard] = useState("");
   const [answer, setAnswer] = useState("");
   const introReadRef = useRef(false);
+  const liveRef = useRef(true);
   const { listen } = useHandsFree();
 
   useEffect(() => {
@@ -71,7 +72,10 @@ export default function DailyReview({
         setPhase("nokey");
       }
     })();
-    return () => stopAllSpeech();
+    return () => {
+      liveRef.current = false;
+      stopAllSpeech();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,8 +89,11 @@ export default function DailyReview({
         introReadRef.current = true;
         await speakSmart(review.intro, "en-GB");
       }
+      if (!liveRef.current) return;
       await speakSmart(`${item.title}. ${item.explanation_en}`, "en-GB");
+      if (!liveRef.current) return;
       if (item.example_en) await speakSmart(`Here's an example. ${item.example_en}`, "en-GB");
+      if (!liveRef.current) return;
       if (item.french?.explanation) await speakSmart(item.french.explanation, "fr-FR");
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,7 +122,12 @@ export default function DailyReview({
       const data = await r.json();
       if (data.answer) {
         setAnswer(data.answer);
-        await speakNaturalOnly(data.answer, "en-GB");
+        // If Atlas replied in French (the child asked in French), say it with a
+        // French accent; otherwise English.
+        const isFrench =
+          /[àâäçéèêëîïôûùüœ]/i.test(data.answer) ||
+          /\b(je|tu|le|la|les|un|une|bonjour|oui|non|merci|c'est|tres|très)\b/i.test(data.answer);
+        if (liveRef.current) await speakNaturalOnly(data.answer, isFrench ? "fr-FR" : "en-GB");
       } else {
         setAnswer("I can't answer that one right now, but keep going — you're doing great!");
       }

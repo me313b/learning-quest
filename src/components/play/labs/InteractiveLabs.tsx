@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { chime, primeVoices, speakSmart } from "@/lib/speech";
+import { chime, primeVoices, speakSmart, stopAllSpeech } from "@/lib/speech";
 import FrenchAudioLab from "../FrenchAudioLab";
 import FrenchReadingLab from "../FrenchReadingLab";
 import SpeakPro from "../french/SpeakPro";
@@ -657,6 +657,11 @@ type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-nam
 
 export default function InteractiveLabs({ onExit, profileId }: { onExit: () => void; profileId: string }) {
   const [view, setView] = useState<View>(null);
+
+  // Stop any spoken audio the moment the child opens or leaves a lab.
+  useEffect(() => {
+    stopAllSpeech();
+  }, [view]);
   const [surprise, setSurprise] = useState<LabSubject | null>(null);
 
   if (view === "place") return <PlaceValueLab onBack={() => setView(null)} />;

@@ -10,7 +10,7 @@ import {
 import { AVATARS, CORE_SUBJECTS } from "@/lib/config";
 import { installAudioUnlock, isMusicOn, startMusic, stopMusic, toggleMusic } from "@/lib/music";
 import { prefetchSections } from "@/lib/prefetch";
-import { setVoicePref } from "@/lib/speech";
+import { setVoicePref, stopAllSpeech } from "@/lib/speech";
 import type { Attempt, Profile, Session } from "@/lib/types";
 import Home from "./Home";
 import Quiz from "./Quiz";
@@ -85,6 +85,12 @@ export default function GameShell({ profileId }: { profileId: string }) {
       startMusic();
       prefetchSections(); // warm audio + a reading story in the background
     } else stopMusic();
+  }, [view]);
+
+  // Stop any talking the moment the child moves to another screen, so a voice
+  // never carries over into the next page.
+  useEffect(() => {
+    stopAllSpeech();
   }, [view]);
 
   useEffect(() => {

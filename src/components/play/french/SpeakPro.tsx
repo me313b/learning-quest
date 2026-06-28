@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useHandsFree } from "@/lib/french/useHandsFree";
 import { diffFrench, encourageFr, praiseFr, type DiffResult } from "@/lib/french/compare";
 import { fallbackSentence } from "@/lib/french/scenarios";
-import { chime, speakNaturalOnly } from "@/lib/speech";
+import { chime, speakNaturalOnly, stopAllSpeech } from "@/lib/speech";
 import type { FrenchSentence } from "@/lib/types";
 import { PixelButton } from "@/components/ui/primitives";
 
@@ -39,6 +39,10 @@ export default function SpeakPro({ onBack }: { onBack: () => void }) {
     const lv = Math.max(1, Math.min(8, saved || 1));
     levelRef.current = lv;
     setLevelNum(lv);
+    return () => {
+      runningRef.current = false;
+      stopAllSpeech();
+    };
   }, []);
 
   const fetchSentence = useCallback(async (): Promise<FrenchSentence> => {

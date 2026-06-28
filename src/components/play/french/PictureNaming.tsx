@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useHandsFree } from "@/lib/french/useHandsFree";
 import { normFr, praiseFr } from "@/lib/french/compare";
 import { shufflePictures, type PictureItem } from "@/lib/french/pictureBank";
-import { chime, speakNaturalOnly } from "@/lib/speech";
+import { chime, speakNaturalOnly, stopAllSpeech } from "@/lib/speech";
 import { PixelButton } from "@/components/ui/primitives";
 
 type Status = "" | "correct" | "wrong" | "revealed";
@@ -34,6 +34,7 @@ export default function PictureNaming({ onBack }: { onBack: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const recentRef = useRef<string[]>([]);
   const loadingRef = useRef(false);
+  const liveRef = useRef(true);
 
   const item = queue[idx % queue.length];
 
@@ -67,6 +68,14 @@ export default function PictureNaming({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     loadMore();
   }, [loadMore]);
+
+  useEffect(() => {
+    liveRef.current = true;
+    return () => {
+      liveRef.current = false;
+      stopAllSpeech();
+    };
+  }, []);
 
   useEffect(() => {
     if (idx >= queue.length - 3) loadMore();
@@ -104,6 +113,7 @@ export default function PictureNaming({ onBack }: { onBack: () => void }) {
   async function sayIt() {
     setStatus("");
     const res = await listen(7000, { prompt: item.fr });
+    if (!liveRef.current) return;
     const said = (res?.text || "").trim();
     setHeard(said);
     if (said) check(said);

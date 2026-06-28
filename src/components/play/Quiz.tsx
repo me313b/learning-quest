@@ -29,7 +29,7 @@ import { DifficultyPips, PixelButton } from "@/components/ui/primitives";
 import FunIllustration, { randomFunIndex } from "@/components/ui/FunIllustration";
 import Confetti from "@/components/ui/Confetti";
 import { motion } from "framer-motion";
-import { chime, primeVoices, speakSmart } from "@/lib/speech";
+import { chime, primeVoices, speakSmart, stopAllSpeech } from "@/lib/speech";
 
 // Each non-creative question runs as: answer (60s) -> if wrong, a specific hint
 // and ONE more try -> if the retry is right, half the reward (recorded as
@@ -180,6 +180,16 @@ export default function Quiz({
   const submittingRef = useRef(false);
   const startedAtRef = useRef(0);
   const attemptRef = useRef(1);
+  const mountedRef = useRef(true);
+
+  // Stop any talking (questions, facts, reactions) if the child leaves the quiz.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      stopAllSpeech();
+    };
+  }, []);
 
   const setPhaseR = (v: Phase) => {
     phaseRef.current = v;
@@ -202,7 +212,9 @@ export default function Quiz({
     // A fun fact to kick things off (read aloud before the first question loads).
     const startFact = randomFact();
     setFact(startFact);
-    setTimeout(() => speakSmart(`Did you know? ${startFact}`, "en-GB"), 300);
+    setTimeout(() => {
+      if (mountedRef.current) speakSmart(`Did you know? ${startFact}`, "en-GB");
+    }, 300);
     (async () => {
       let sid: string | null = null;
       try {
@@ -646,7 +658,9 @@ export default function Quiz({
     setCelebrate(true);
     setTimeout(() => setCelebrate(false), 2200);
     setPhaseR("done");
-    setTimeout(() => speakSmart(`Great quest! Here's a fun fact before you go. ${randomFact()}`, "en-GB"), 600);
+    setTimeout(() => {
+      if (mountedRef.current) speakSmart(`Great quest! Here's a fun fact before you go. ${randomFact()}`, "en-GB");
+    }, 600);
   }
 
   async function uploadArt(profileId: string, f: File) {

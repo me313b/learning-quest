@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { normFr, praiseFr } from "@/lib/french/compare";
 import { fallbackBuilder } from "@/lib/french/scenarios";
-import { chime, speakNaturalOnly } from "@/lib/speech";
+import { chime, speakNaturalOnly, stopAllSpeech } from "@/lib/speech";
 import type { FrenchBuilder } from "@/lib/types";
 import { PixelButton } from "@/components/ui/primitives";
 
@@ -28,6 +28,7 @@ export default function SentenceBuilder({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     levelRef.current = Math.max(1, Math.min(5, Number(localStorage.getItem(LEVEL_KEY) || "2")));
+    return () => stopAllSpeech();
   }, []);
 
   const load = useCallback(async (t: string) => {
