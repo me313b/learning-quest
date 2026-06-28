@@ -139,200 +139,134 @@ function mathsQuestion(level: number): Question {
   const thing = choice(THINGS);
   const who = choice(PEOPLE);
   const has = who === "You" ? "have" : "has";
-  switch (level) {
-    case 1: {
-      const a = randInt(1, 5);
-      const b = randInt(1, 5);
-      return q({
-        type: "numeric",
-        topic: "addition",
-        skill: "addition",
-        difficulty: level,
-        prompt: `${who} ${has} ${a} ${thing} and get ${b} more. How many now?`,
-        answer: String(a + b),
-        solution: `${a} + ${b} = ${a + b}.`,
-      });
+  const L = Math.max(1, Math.min(15, Math.round(level)));
+
+  // Small helper so every branch reads cleanly.
+  const num = (topic: string, skill: string, prompt: string, answer: number, solution: string): Question =>
+    q({ type: "numeric", topic, skill, difficulty: L, prompt, answer: String(answer), solution });
+
+  // BAND 1-2 — single-step add / subtract, small numbers.
+  if (L <= 2) {
+    if (L === 1) {
+      const a = randInt(2, 6);
+      const b = randInt(2, 6);
+      return num("addition", "addition", `${who} ${has} ${a} ${thing} and get ${b} more. How many now?`, a + b, `${a} + ${b} = ${a + b}.`);
     }
-    case 2: {
-      const a = randInt(8, 18);
-      const b = randInt(2, a - 1);
-      return q({
-        type: "numeric",
-        topic: "subtraction",
-        skill: "subtraction",
-        difficulty: level,
-        prompt: `${who} ${has} ${a} ${thing} and give away ${b}. How many are left?`,
-        answer: String(a - b),
-        solution: `${a} − ${b} = ${a - b}.`,
-      });
-    }
-    case 3: {
-      const t = choice([2, 5, 10]);
-      const n = randInt(2, 9);
-      return q({
-        type: "numeric",
-        topic: "multiplication",
-        skill: "multiplication / times tables",
-        difficulty: level,
-        prompt: `There are ${t} ${thing} in each bag. How many in ${n} bags?`,
-        answer: String(t * n),
-        solution: `${n} × ${t} = ${t * n}.`,
-      });
-    }
-    case 4: {
-      const t = randInt(3, 12);
-      const n = randInt(3, 12);
-      return q({
-        type: "numeric",
-        topic: "multiplication",
-        skill: "multiplication / times tables",
-        difficulty: level,
-        prompt: `Each box holds ${t} ${thing}. How many in ${n} boxes?`,
-        answer: String(t * n),
-        solution: `${n} × ${t} = ${t * n}.`,
-      });
-    }
-    case 5: {
-      const groups = choice([2, 3, 4, 5]);
-      const per = randInt(2, 8);
-      const total = per * groups;
-      return q({
-        type: "numeric",
-        topic: "division",
-        skill: "division and sharing",
-        difficulty: level,
-        prompt: `${total} ${thing} are shared equally between ${groups} friends. How many each?`,
-        answer: String(per),
-        solution: `${total} ÷ ${groups} = ${per}.`,
-      });
-    }
-    case 6: {
-      const a = randInt(15, 49);
-      const b = randInt(15, 49);
-      return q({
-        type: "numeric",
-        topic: "addition",
-        skill: "place value (column addition)",
-        difficulty: level,
-        prompt: `Add these two numbers: ${a} + ${b} = ?`,
-        answer: String(a + b),
-        solution: `Add the units, then the tens: ${a} + ${b} = ${a + b}.`,
-      });
-    }
-    case 7: {
-      const denom = choice([2, 3, 4, 5]);
-      const whole = denom * randInt(2, 6);
-      const used = whole / denom;
-      return q({
-        type: "numeric",
-        topic: "fractions",
-        skill: "fractions of an amount",
-        difficulty: level,
-        prompt: `What is 1/${denom} of ${whole} ${thing}?`,
-        answer: String(used),
-        solution: `1/${denom} of ${whole} = ${whole} ÷ ${denom} = ${used}.`,
-      });
-    }
-    case 8: {
-      const w = randInt(3, 9);
-      const h = randInt(3, 9);
-      return q({
-        type: "numeric",
-        topic: "area",
-        skill: "shape, area and perimeter",
-        difficulty: level,
-        prompt: `A rug is ${w} squares wide and ${h} squares long. What is its area in squares?`,
-        answer: String(w * h),
-        solution: `Area = width × length = ${w} × ${h} = ${w * h}.`,
-      });
-    }
-    case 9: {
-      const price = randInt(3, 7);
-      const qty = randInt(4, 9);
-      const paid = qty * price + randInt(1, 20);
-      const change = paid - qty * price;
-      return q({
-        type: "numeric",
-        topic: "money",
-        skill: "money and change",
-        difficulty: level,
-        prompt: `Pens cost £${price} each. ${who} buy ${qty} and pay £${paid}. How much change in pounds?`,
-        answer: String(change),
-        solution: `Cost = ${qty} × £${price} = £${qty * price}. Change = £${paid} − £${qty * price} = £${change}.`,
-      });
-    }
-    default: {
-      const pick = randInt(1, 4);
-      if (pick === 1) {
-        // Arithmetic series with a non-trivial step (bigger at higher levels).
-        const start = randInt(3, 12);
-        const step = level >= 12 ? randInt(6, 14) : randInt(3, 9);
-        const seq = [start, start + step, start + 2 * step, start + 3 * step];
-        return q({
-          type: "numeric",
-          topic: "number series",
-          skill: "number series and what comes next",
-          difficulty: level,
-          prompt: `What number comes next in this pattern? ${seq.join(", ")}, ?`,
-          answer: String(start + 4 * step),
-          solution: `Each step adds ${step}, so the next number is ${start + 4 * step}.`,
-        });
-      }
-      if (pick === 2) {
-        // Two-step "work backwards" — subtraction makes it a little harder, with
-        // larger numbers at higher levels.
-        const mag = level >= 12 ? 20 : 12;
-        const x = randInt(5, mag);
-        const mult = randInt(3, level >= 12 ? 12 : 7);
-        const sub = randInt(5, 40);
-        const result = x * mult - sub;
-        return q({
-          type: "numeric",
-          topic: "missing number",
-          skill: "word problems (multi-step)",
-          difficulty: level,
-          prompt: `A number is multiplied by ${mult}, then ${sub} is taken away, giving ${result}. What is the number?`,
-          answer: String(x),
-          solution: `Work backwards: (${result} + ${sub}) ÷ ${mult} = ${x}.`,
-        });
-      }
-      if (pick === 3) {
-        // Increasing-difference pattern: the gaps grow by 2 each time (needs real
-        // insight, not just "spot the doubling").
-        const a0 = randInt(1, 6);
-        const d = randInt(2, 6);
-        const a1 = a0 + d;
-        const a2 = a1 + (d + 2);
-        const a3 = a2 + (d + 4);
-        const next = a3 + (d + 6);
-        return q({
-          type: "numeric",
-          topic: "number series",
-          skill: "number series and what comes next",
-          difficulty: level,
-          prompt: `What comes next? ${a0}, ${a1}, ${a2}, ${a3}, ?`,
-          answer: String(next),
-          solution: `The gaps grow by 2 each time (${d}, ${d + 2}, ${d + 4}, then ${d + 6}), so the next number is ${next}.`,
-        });
-      }
-      // Add-the-two-before-it pattern (Fibonacci style) — genuinely tricky.
-      const f0 = randInt(1, 4);
-      const f1 = randInt(2, 6);
-      const f2 = f0 + f1;
-      const f3 = f1 + f2;
-      const f4 = f2 + f3;
-      const f5 = f3 + f4;
-      return q({
-        type: "numeric",
-        topic: "number series",
-        skill: "number series and what comes next",
-        difficulty: level,
-        prompt: `What comes next? ${f0}, ${f1}, ${f2}, ${f3}, ${f4}, ?`,
-        answer: String(f5),
-        solution: `Each number is the two before it added together, so ${f3} + ${f4} = ${f5}.`,
-      });
-    }
+    const a = randInt(11, 20);
+    const b = randInt(3, a - 1);
+    return num("subtraction", "subtraction", `${who} ${has} ${a} ${thing} and give away ${b}. How many are left?`, a - b, `${a} − ${b} = ${a - b}.`);
   }
+
+  // BAND 3-4 — multiplication, sharing, two-digit addition (one step).
+  if (L <= 4) {
+    const r = randInt(1, 3);
+    if (r === 1) {
+      const t = randInt(3, 9);
+      const n = randInt(3, 9);
+      return num("multiplication", "multiplication / times tables", `Each box holds ${t} ${thing}. How many in ${n} boxes?`, t * n, `${n} × ${t} = ${t * n}.`);
+    }
+    if (r === 2) {
+      const g = randInt(2, 5);
+      const per = randInt(3, 8);
+      const tot = g * per;
+      return num("division", "division and sharing", `${tot} ${thing} are shared equally between ${g} friends. How many each?`, per, `${tot} ÷ ${g} = ${per}.`);
+    }
+    const a = randInt(15, 49);
+    const b = randInt(15, 49);
+    return num("addition", "place value (column addition)", `Add these two numbers: ${a} + ${b} = ?`, a + b, `${a} + ${b} = ${a + b}.`);
+  }
+
+  // BAND 5-6 — first TWO-STEP problems, fractions, missing number.
+  if (L <= 6) {
+    const r = randInt(1, 3);
+    if (r === 1) {
+      const p = randInt(2, 6);
+      const n = randInt(3, 7);
+      const start = randInt(n * p + 5, n * p + 25);
+      return num("money", "word problems (multi-step)", `${thing} cost ${p} coins each. ${who} buy ${n} of them with ${start} coins. How many coins are left?`, start - n * p, `Cost ${n} × ${p} = ${n * p}. Left: ${start} − ${n * p} = ${start - n * p}.`);
+    }
+    if (r === 2) {
+      const d = choice([2, 3, 4, 5]);
+      const whole = d * randInt(3, 8);
+      return num("fractions", "fractions of an amount", `What is 1/${d} of ${whole} ${thing}?`, whole / d, `1/${d} of ${whole} = ${whole} ÷ ${d} = ${whole / d}.`);
+    }
+    const a = randInt(10, 40);
+    const s = randInt(5, 30);
+    return num("missing number", "missing number / inverse", `${a} + ? = ${a + s}. What is the missing number?`, s, `${a + s} − ${a} = ${s}.`);
+  }
+
+  // BAND 7-9 — genuine multi-step reasoning, larger numbers, comparison.
+  if (L <= 9) {
+    const r = randInt(1, 4);
+    if (r === 1) {
+      const per = randInt(4, 9);
+      const boxes = randInt(3, 6);
+      const loose = randInt(2, 9);
+      const tot = per * boxes + loose;
+      return num("multiplication", "word problems (multi-step)", `There are ${boxes} boxes with ${per} ${thing} in each, plus ${loose} loose ${thing}. How many altogether?`, tot, `${boxes} × ${per} = ${per * boxes}, then + ${loose} = ${tot}.`);
+    }
+    if (r === 2) {
+      const p1 = randInt(2, 6);
+      const p2 = randInt(2, 6);
+      const q1 = randInt(2, 4);
+      const q2 = randInt(2, 4);
+      const cost = p1 * q1 + p2 * q2;
+      const paid = randInt(cost + 1, cost + 20);
+      return num("money", "money and change", `${q1} apples cost ${p1} coins each and ${q2} pears cost ${p2} coins each. ${who} pay ${paid} coins. How much change?`, paid - cost, `Cost: ${p1 * q1} + ${p2 * q2} = ${cost}. Change: ${paid} − ${cost} = ${paid - cost}.`);
+    }
+    if (r === 3) {
+      const d = choice([2, 3, 4]);
+      const whole = d * randInt(3, 8);
+      const frac = whole / d;
+      const extra = randInt(3, 12);
+      return num("fractions", "fractions and reasoning", `${who} ${has} ${whole} ${thing}. ${who} give away 1/${d} of them, then find ${extra} more. How many ${thing} now?`, whole - frac + extra, `1/${d} of ${whole} = ${frac}. ${whole} − ${frac} + ${extra} = ${whole - frac + extra}.`);
+    }
+    const a = randInt(20, 60);
+    const b = randInt(20, 60);
+    const who1 = "Sam";
+    const who2 = "Alex";
+    return num("comparison", "comparing and reasoning", `${who1} has ${a} ${thing} and ${who2} has ${b}. How many more does ${a > b ? who1 : who2} have?`, Math.abs(a - b), `${Math.max(a, b)} − ${Math.min(a, b)} = ${Math.abs(a - b)}.`);
+  }
+
+  // BAND 10-15 — genuinely hard: insight patterns and multi-step working.
+  const r = randInt(1, 5);
+  if (r === 1) {
+    const start = randInt(3, 12);
+    const step = L >= 12 ? randInt(6, 14) : randInt(4, 9);
+    const seq = [start, start + step, start + 2 * step, start + 3 * step];
+    return num("number series", "number series and what comes next", `What number comes next? ${seq.join(", ")}, ?`, start + 4 * step, `Each step adds ${step}, so the next number is ${start + 4 * step}.`);
+  }
+  if (r === 2) {
+    const x = randInt(5, L >= 12 ? 20 : 12);
+    const mult = randInt(3, L >= 12 ? 12 : 7);
+    const sub = randInt(5, 40);
+    const result = x * mult - sub;
+    return num("missing number", "word problems (multi-step)", `A number is multiplied by ${mult}, then ${sub} is taken away, giving ${result}. What is the number?`, x, `Work backwards: (${result} + ${sub}) ÷ ${mult} = ${x}.`);
+  }
+  if (r === 3) {
+    const a0 = randInt(1, 6);
+    const d = randInt(2, 6);
+    const a1 = a0 + d;
+    const a2 = a1 + (d + 2);
+    const a3 = a2 + (d + 4);
+    const next = a3 + (d + 6);
+    return num("number series", "number series and what comes next", `What comes next? ${a0}, ${a1}, ${a2}, ${a3}, ?`, next, `The gaps grow by 2 each time (${d}, ${d + 2}, ${d + 4}, then ${d + 6}), so the next number is ${next}.`);
+  }
+  if (r === 4) {
+    const f0 = randInt(1, 4);
+    const f1 = randInt(2, 6);
+    const f2 = f0 + f1;
+    const f3 = f1 + f2;
+    const f4 = f2 + f3;
+    const f5 = f3 + f4;
+    return num("number series", "number series and what comes next", `What comes next? ${f0}, ${f1}, ${f2}, ${f3}, ${f4}, ?`, f5, `Each number is the two before it added together, so ${f3} + ${f4} = ${f5}.`);
+  }
+  const squares = [1, 4, 9, 16, 25, 36, 49, 64, 81];
+  const idx = randInt(0, 3);
+  const seq = squares.slice(idx, idx + 4);
+  const nextSq = squares[idx + 4];
+  const root = Math.round(Math.sqrt(nextSq));
+  return num("number series", "number patterns and reasoning", `What comes next? ${seq.join(", ")}, ?`, nextSq, `These are square numbers (1×1, 2×2, 3×3 …). The next is ${root} × ${root} = ${nextSq}.`);
 }
 
 // --------------------------------------------------------------------------- //

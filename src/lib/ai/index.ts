@@ -310,7 +310,10 @@ export async function generateQuestion(
   let best: Question | null = null;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const raw = await chat(provider, apiKey, model, QGEN_SYSTEM, user, { maxTokens: 900 });
+      // Generous token budget: rich questions (a reading passage, a scenario,
+      // four options, a worked solution and the self-rating) can be long, and a
+      // truncated reply produces invalid JSON that would force a poor fallback.
+      const raw = await chat(provider, apiKey, model, QGEN_SYSTEM, user, { maxTokens: 1600 });
       const q = parseQuestion(raw, subject, difficulty);
       if (q) {
         if (meetsDifficultyBar(q, difficulty)) return q;
