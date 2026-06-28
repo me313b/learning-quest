@@ -67,6 +67,7 @@ const POLYPAD_CREDIT = "Polypad by Amplify / Mathigon (polypad.amplify.com)";
 const CC_CREDIT = "The Concord Consortium — free STEM interactives (concord.org)";
 const BLOCKLY_CREDIT = "Blockly Games — open-source coding games by Google (blockly.games)";
 const DUCKSTERS_CREDIT = "Ducksters Education Site (ducksters.com)";
+const CM4K_CREDIT = "Coolmath4Kids (coolmath4kids.com)";
 
 export const EXTERNAL_RESOURCES: ExternalResource[] = [
   // ---- MATHS: GeoGebra apps (in-page via official API) ----------------------
@@ -88,7 +89,16 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   { id: "polypad", title: "Polypad Playground", emoji: "🟦", description: "Number tiles, fraction bars, algebra tiles, shapes, dice and a tangram.", provider: "Polypad", credit: POLYPAD_CREDIT, category: "maths", url: "https://polypad.amplify.com/p" },
   { id: "polypad-lessons", title: "Polypad Activities", emoji: "🧩", description: "A big library of maths puzzles and lessons.", provider: "Polypad", credit: POLYPAD_CREDIT, category: "maths", url: "https://polypad.amplify.com/lessons" },
   { id: "mlc-apps", title: "Math Learning Center Apps", emoji: "🔟", description: "Number frames, number lines, money, fractions and more.", provider: "Math Learning Center", credit: "The Math Learning Center (mathlearningcenter.org)", category: "maths", url: "https://www.mathlearningcenter.org/apps" },
-  { id: "coolmath4kids", title: "Coolmath4Kids", emoji: "😎", description: "Maths games, puzzles and lessons for younger children.", provider: "Coolmath4Kids", credit: "Coolmath4Kids (coolmath4kids.com)", category: "maths", url: "https://www.coolmath4kids.com/" },
+  { id: "coolmath4kids", title: "Coolmath4Kids", emoji: "😎", description: "The Coolmath4Kids home — games, puzzles, lessons and manipulatives for younger children.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/" },
+  { id: "cm4k-games", title: "Coolmath4Kids: Games", emoji: "🎮", description: "Arcade-style maths games for every grade (addition, times tables, division and more).", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/math-games" },
+  { id: "cm4k-lessons", title: "Coolmath4Kids: Lessons", emoji: "📘", description: "Step-by-step lessons with quizzes — adding, subtracting, multiplying, dividing and more.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/math-help" },
+  { id: "cm4k-brain-teasers", title: "Coolmath4Kids: Brain Teasers", emoji: "🧩", description: "Clever puzzles like the Penny Triangle, Toothpick Squares and the Handshake Puzzle.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/brain-teasers" },
+  { id: "cm4k-manipulatives", title: "Coolmath4Kids: Manipulatives", emoji: "🔢", description: "Hands-on number tools to explore and understand maths visually.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/manipulatives" },
+  { id: "cm4k-ten-frame", title: "Ten Frame", emoji: "🟧", description: "Build number sense by making and breaking numbers within 5, 10 and 20.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/manipulatives/ten-frame" },
+  { id: "cm4k-base-ten", title: "Base Ten Blocks", emoji: "🧱", description: "Place-value blocks for counting, regrouping, adding and subtracting.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/manipulatives/base-ten-blocks" },
+  { id: "cm4k-number-line", title: "Number Line", emoji: "📏", description: "A flexible number line for mental arithmetic and number relationships.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/manipulatives/number-line" },
+  { id: "cm4k-pattern-blocks", title: "Pattern Blocks", emoji: "🔷", description: "Shape tiles for spatial reasoning, patterns and early geometry.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/manipulatives/pattern-blocks" },
+  { id: "cm4k-more", title: "Coolmath4Kids: More", emoji: "✨", description: "Printable flash cards plus fun geometry — polyhedra and tessellations.", provider: "Coolmath4Kids", credit: CM4K_CREDIT, category: "maths", url: "https://www.coolmath4kids.com/more" },
   { id: "nrich", title: "NRICH Maths", emoji: "🧠", description: "Rich maths problems and games from the University of Cambridge.", provider: "NRICH", credit: "NRICH — University of Cambridge (nrich.maths.org)", category: "maths", url: "https://nrich.maths.org/primary" },
   { id: "toytheater", title: "Toy Theater Maths", emoji: "🎯", description: "Simple maths games and virtual manipulatives.", provider: "Toy Theater", credit: "Toy Theater (toytheater.com)", category: "maths", url: "https://toytheater.com/category/math-games/" },
 
