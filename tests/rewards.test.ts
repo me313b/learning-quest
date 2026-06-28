@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   earnedSecondsFromAttempts,
   availableSecondsToday,
+  lifetimeAvailableSeconds,
   starsForSubject,
 } from "@/lib/rewards";
 import { attempt, correct } from "./helpers";
@@ -73,5 +74,41 @@ describe("starsForSubject", () => {
   it("awards 0 stars for none correct or no attempts", () => {
     expect(starsForSubject([])).toBe(0);
     expect(starsForSubject([attempt({ verdict: "incorrect" })])).toBe(0);
+  });
+});
+
+describe("lifetimeAvailableSeconds (carry-over across days)", () => {
+  const T = "2026-06-28";
+
+  it("carries unused minutes from previous days into the balance", () => {
+    const sessions = [
+      { day: "2026-06-26", earned_minutes: 20, minutes_used: 5, bonus_minutes: 0 }, // +15
+      { day: "2026-06-27", earned_minutes: 10, minutes_used: 0, bonus_minutes: 0 }, // +10
+    ];
+    // today earns 4 min, watched 0 -> +4. Total = 15 + 10 + 4 = 29 min.
+    expect(lifetimeAvailableSeconds(sessions, T, 4 * 60, { capMin: 30 })).toBe(29 * 60);
+  });
+
+  it("subtracts what was watched, including today's watching", () => {
+    const sessions = [
+      { day: "2026-06-27", earned_minutes: 10, minutes_used: 0, bonus_minutes: 0 },
+      { day: T, earned_minutes: 0, minutes_used: 6, bonus_minutes: 0 }, // today's row with 6 watched
+    ];
+    // past +10, today earns 4 live, today watched 6 -> 10 + 4 - 6 = 8.
+    expect(lifetimeAvailableSeconds(sessions, T, 4 * 60, { capMin: 30 })).toBe(8 * 60);
+  });
+
+  it("caps each day's earning but lets the balance accumulate beyond the cap", () => {
+    const sessions = [
+      { day: "2026-06-26", earned_minutes: 50, minutes_used: 0, bonus_minutes: 0 }, // capped to 30
+      { day: "2026-06-27", earned_minutes: 50, minutes_used: 0, bonus_minutes: 0 }, // capped to 30
+    ];
+    // 30 + 30 + 0 today = 60 (above the 30 daily cap, by design).
+    expect(lifetimeAvailableSeconds(sessions, T, 0, { capMin: 30 })).toBe(60 * 60);
+  });
+
+  it("never goes below zero", () => {
+    const sessions = [{ day: "2026-06-27", earned_minutes: 2, minutes_used: 99, bonus_minutes: 0 }];
+    expect(lifetimeAvailableSeconds(sessions, T, 0, { capMin: 30 })).toBe(0);
   });
 });
