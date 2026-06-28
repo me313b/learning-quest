@@ -869,3 +869,133 @@ export async function generateFrenchPictures(
   }
   return null;
 }
+
+// --------------------------------------------------------------------------- //
+// Weekly dictation + daily coaching. All return null/[] on failure so callers
+// can show a friendly fallback.
+// --------------------------------------------------------------------------- //
+import type { CoachReview, DictationMark, DictationPassage } from "../types";
+import {
+  DICTATION_GEN_SYSTEM,
+  buildDictationGenUser,
+  DICTATION_MARK_SYSTEM,
+  buildDictationMarkUser,
+  COACH_SYSTEM,
+  buildCoachUser,
+  COACH_ASK_SYSTEM,
+} from "./prompts";
+
+export async function generateDictation(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  words: string[],
+  lengthLevel: "short" | "medium" | "long",
+  difficulty: "easy" | "medium" | "hard",
+): Promise<DictationPassage | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, DICTATION_GEN_SYSTEM, buildDictationGenUser(words, lengthLevel, difficulty), { maxTokens: 500 });
+      const data = extractJson(raw);
+      const sentences = data?.sentences as unknown[] | undefined;
+      if (Array.isArray(sentences) && sentences.length) {
+        const sd = String(data?.suggested_difficulty || difficulty);
+        return {
+          title: typeof data?.title === "string" ? data.title : "Spelling practice",
+          sentences: sentences.map((s) => String(s)).filter(Boolean),
+          suggested_difficulty: (sd === "medium" || sd === "hard" ? sd : "easy") as "easy" | "medium" | "hard",
+        };
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
+}
+
+export async function markDictation(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  passage: string,
+  words: string[],
+  imageB64: string,
+  mediaType: string,
+): Promise<DictationMark | null> {
+  try {
+    const raw = await chat(provider, apiKey, model, DICTATION_MARK_SYSTEM, buildDictationMarkUser(passage, words), {
+      maxTokens: 800,
+      imageB64,
+      imageMedia: mediaType,
+    });
+    const data = extractJson(raw);
+    if (!data) return null;
+    const mistakes = Array.isArray(data.mistakes)
+      ? (data.mistakes as unknown[]).map((m) => {
+          const o = m as { wrong?: unknown; correct?: unknown };
+          return { wrong: String(o.wrong ?? ""), correct: String(o.correct ?? "") };
+        })
+      : [];
+    return {
+      transcript: String(data.transcript ?? ""),
+      score: Number(data.score ?? 0) || 0,
+      total: Number(data.total ?? 0) || 0,
+      mistakes,
+      feedback: String(data.feedback ?? "Good effort!"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function generateCoaching(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  mistakes: { subject: string; skill: string; prompt: string; correct: string }[],
+  includeFrench: boolean,
+): Promise<CoachReview | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, COACH_SYSTEM, buildCoachUser(mistakes, includeFrench), { maxTokens: 1400 });
+      const data = extractJson(raw);
+      const items = data?.items as unknown[] | undefined;
+      if (Array.isArray(items) && items.length) {
+        const out = items.map((it) => {
+          const o = it as Record<string, unknown>;
+          const fr = o.french as { explanation?: unknown; example?: unknown } | undefined;
+          const hasFr = fr && (fr.explanation || fr.example);
+          return {
+            title: String(o.title ?? "Let's review"),
+            subject: String(o.subject ?? ""),
+            explanation_en: String(o.explanation_en ?? ""),
+            example_en: String(o.example_en ?? ""),
+            tip_en: String(o.tip_en ?? ""),
+            french: hasFr ? { explanation: String(fr!.explanation ?? ""), example: String(fr!.example ?? "") } : undefined,
+          };
+        });
+        return { intro: String(data?.intro ?? "Let's look at a few things together."), items: out };
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
+}
+
+export async function coachAnswer(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  question: string,
+  context: string,
+): Promise<string | null> {
+  try {
+    const user = context ? `We were just reviewing: ${context}.\n\nThe child asks: "${question}"` : `The child asks: "${question}"`;
+    const raw = await chat(provider, apiKey, model, COACH_ASK_SYSTEM, user, { maxTokens: 300 });
+    const text = (raw || "").trim();
+    return text || null;
+  } catch {
+    return null;
+  }
+}

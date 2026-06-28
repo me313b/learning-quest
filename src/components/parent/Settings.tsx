@@ -1,10 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listProfiles, updateProfile } from "@/lib/data";
+import { getDictationConfig, listProfiles, updateProfile } from "@/lib/data";
 import { SUBJECTS } from "@/lib/config";
 import { MUSIC_TRACKS, getMusicTrack, setMusicTrack, type MusicTrack } from "@/lib/music";
 import type { Profile, Provider, SafeSettings } from "@/lib/types";
+
+const VOICE_OPTIONS = [
+  { id: "coral", label: "Coral — friendly (default)" },
+  { id: "sage", label: "Sage — calm" },
+  { id: "nova", label: "Nova — bright" },
+  { id: "shimmer", label: "Shimmer — gentle" },
+  { id: "fable", label: "Fable — playful" },
+  { id: "alloy", label: "Alloy — neutral" },
+  { id: "onyx", label: "Onyx — deep voice" },
+  { id: "echo", label: "Echo — warm voice" },
+  { id: "ash", label: "Ash — soft voice" },
+];
 import { PixelButton } from "@/components/ui/primitives";
 
 const PROVIDER_LABELS: Record<Provider, string> = {
@@ -65,6 +77,22 @@ export default function Settings({
   const [perCorrect, setPerCorrect] = useState(String(settings?.rewardPerCorrect ?? 1));
   const [rewardMsg, setRewardMsg] = useState("");
   const [savingReward, setSavingReward] = useState(false);
+
+  const [qSeconds, setQSeconds] = useState(String(settings?.questionSeconds ?? 60));
+  const [noTimer, setNoTimer] = useState((settings?.questionSeconds ?? 60) === 0);
+  const [overtime, setOvertime] = useState(settings?.allowOvertime ?? true);
+  const [voice, setVoice] = useState(settings?.voice || "coral");
+  const [funMode, setFunMode] = useState(settings?.funMode ?? true);
+  const [controlsMsg, setControlsMsg] = useState("");
+  const [savingControls, setSavingControls] = useState(false);
+
+  const [spellWords, setSpellWords] = useState("");
+  const [dictLength, setDictLength] = useState<"short" | "medium" | "long">("short");
+  const [dictDiff, setDictDiff] = useState<"easy" | "medium" | "hard">("easy");
+  const [dictPause, setDictPause] = useState("4");
+  const [dictConfirm, setDictConfirm] = useState(false);
+  const [dictMsg, setDictMsg] = useState("");
+  const [savingDict, setSavingDict] = useState(false);
 
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
@@ -223,6 +251,74 @@ export default function Settings({
       setRewardMsg("Couldn't save.");
     } finally {
       setSavingReward(false);
+    }
+  }
+
+  async function saveControls() {
+    setSavingControls(true);
+    setControlsMsg("");
+    try {
+      const secs = noTimer ? 0 : Math.max(5, Math.min(600, parseInt(qSeconds, 10) || 60));
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ questionSeconds: secs, allowOvertime: overtime, voice, funMode }),
+      });
+      if (res.ok) {
+        setControlsMsg("Saved.");
+        await onSaved();
+      } else {
+        setControlsMsg("Couldn't save.");
+      }
+    } catch {
+      setControlsMsg("Couldn't save.");
+    } finally {
+      setSavingControls(false);
+    }
+  }
+
+  // Load the saved weekly dictation settings when the panel opens.
+  useEffect(() => {
+    getDictationConfig()
+      .then((c) => {
+        setSpellWords((c.words || []).join(", "));
+        setDictLength(c.length);
+        setDictDiff(c.difficulty);
+        setDictPause(String(c.pause));
+        setDictConfirm(c.confirm);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function saveDictation() {
+    setSavingDict(true);
+    setDictMsg("");
+    try {
+      const words = spellWords
+        .split(/[,\n]/)
+        .map((w) => w.trim())
+        .filter(Boolean);
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          spellingWords: words,
+          dictationLength: dictLength,
+          dictationDifficulty: dictDiff,
+          dictationPause: Math.max(1, Math.min(30, parseInt(dictPause, 10) || 4)),
+          dictationConfirm: dictConfirm,
+        }),
+      });
+      if (res.ok) {
+        setDictMsg(`Saved ${words.length} word(s).`);
+        await onSaved();
+      } else {
+        setDictMsg("Couldn't save.");
+      }
+    } catch {
+      setDictMsg("Couldn't save.");
+    } finally {
+      setSavingDict(false);
     }
   }
 
@@ -415,6 +511,120 @@ export default function Settings({
       </div>
 
       {/* Background music -----------------------------------------------------*/}
+      {/* Quiz & voice -------------------------------------------------------*/}
+      <div className="mc-card-dark space-y-3">
+        <h3 className="font-pixel text-xs text-grasstop">🎯 Quiz &amp; voice</h3>
+        <label className="flex items-center justify-between gap-3 text-sm text-paper/85">
+          Seconds per question
+          <input
+            type="number"
+            min={5}
+            max={600}
+            value={qSeconds}
+            disabled={noTimer}
+            onChange={(e) => setQSeconds(e.target.value)}
+            className="mc-input w-24 text-center disabled:opacity-50"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-paper/85">
+          <input type="checkbox" checked={noTimer} onChange={(e) => setNoTimer(e.target.checked)} />
+          No timer — let them take their time on every question
+        </label>
+        <label className="flex items-start gap-2 text-sm text-paper/85">
+          <input type="checkbox" checked={overtime} onChange={(e) => setOvertime(e.target.checked)} className="mt-1" />
+          If the time runs out, give a little extra (half the time) so they can still answer
+        </label>
+        <label className="block text-sm text-paper/85">
+          Voice
+          <select value={voice} onChange={(e) => setVoice(e.target.value)} className="mc-input mt-1 w-full">
+            {VOICE_OPTIONS.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm text-paper/85">
+          <input type="checkbox" checked={funMode} onChange={(e) => setFunMode(e.target.checked)} />
+          Funny reactions (playful praise when right, gentle jokes when wrong)
+        </label>
+        {controlsMsg && <Note kind="ok">{controlsMsg}</Note>}
+        <PixelButton onClick={saveControls} disabled={savingControls}>
+          {savingControls ? "Saving…" : "💾 Save quiz & voice"}
+        </PixelButton>
+        <p className="text-[11px] text-paper/45">
+          Sentence-writing questions never use a timer. Longer questions and all French questions are read aloud
+          automatically. A new voice applies the next time something is spoken. To save these, run the latest block in
+          RUN-THIS-IN-SUPABASE.sql once.
+        </p>
+      </div>
+
+      {/* Weekly spelling / dictation ---------------------------------------*/}
+      <div className="mc-card-dark space-y-3">
+        <h3 className="font-pixel text-xs text-grasstop">✍️ Weekly spelling words</h3>
+        <p className="text-xs text-paper/60">
+          Add this week&apos;s words. The Spelling Lab turns them into a short passage and reads it aloud slowly for{" "}
+          your child to write, then marks a photo of their writing.
+        </p>
+        <textarea
+          className="mc-input w-full text-sm"
+          rows={3}
+          value={spellWords}
+          onChange={(e) => setSpellWords(e.target.value)}
+          placeholder="cat, dog, school, friend, because..."
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block text-sm text-paper/85">
+            Length
+            <select
+              value={dictLength}
+              onChange={(e) => setDictLength(e.target.value as "short" | "medium" | "long")}
+              className="mc-input mt-1 w-full"
+            >
+              <option value="short">Short (2-3 sentences)</option>
+              <option value="medium">Medium (3-5 sentences)</option>
+              <option value="long">Long (5-7 sentences)</option>
+            </select>
+          </label>
+          <label className="block text-sm text-paper/85">
+            Difficulty
+            <select
+              value={dictDiff}
+              onChange={(e) => setDictDiff(e.target.value as "easy" | "medium" | "hard")}
+              className="mc-input mt-1 w-full"
+            >
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </label>
+        </div>
+        <label className="flex items-center justify-between gap-3 text-sm text-paper/85">
+          Pause between sentences (seconds)
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={dictPause}
+            disabled={dictConfirm}
+            onChange={(e) => setDictPause(e.target.value)}
+            className="mc-input w-20 text-center disabled:opacity-50"
+          />
+        </label>
+        <label className="flex items-start gap-2 text-sm text-paper/85">
+          <input type="checkbox" checked={dictConfirm} onChange={(e) => setDictConfirm(e.target.checked)} className="mt-1" />
+          Wait for my child to tap &quot;Done, next&quot; after each sentence instead of using a fixed pause
+        </label>
+        {dictMsg && <Note kind="ok">{dictMsg}</Note>}
+        <PixelButton onClick={saveDictation} disabled={savingDict}>
+          {savingDict ? "Saving…" : "💾 Save spelling words"}
+        </PixelButton>
+        <p className="text-[11px] text-paper/45">
+          The app suggests a difficulty from your words and checks spelling on the uploaded photo. Needs the OpenAI key
+          active. Run the latest RUN-THIS-IN-SUPABASE.sql once to switch this on.
+        </p>
+      </div>
+
       <div className="mc-card-dark space-y-3">
         <h3 className="font-pixel text-xs text-grasstop">🎵 Background music</h3>
         <p className="text-xs text-paper/60">

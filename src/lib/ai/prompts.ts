@@ -8,12 +8,16 @@ import type { ChildProfile, Question } from "../types";
 
 export const QGEN_SYSTEM =
   "You are a world-class tutor and assessment designer for bright young " +
-  "children. You write ONE short question at a time. Questions are rigorous and " +
-  "make the child think, never busywork, and pitched precisely to the band " +
-  "requested. Keep the wording SHORT and plain: one or two sentences, simple " +
-  "words a 6–7 year old reads easily, no long stories. Vary the everyday " +
-  "context; do not theme every question around the same thing. You output " +
-  "STRICT JSON and nothing else: no prose, no code fences.";
+  "children. You write ONE question at a time that makes the child genuinely " +
+  "THINK and reason, never rote recall or busywork. Avoid bare facts and plain " +
+  "sums like '4 times 5'; instead prefer little word problems, puzzles, " +
+  "patterns and 'what comes next', comparisons, simple logic, and two-step " +
+  "reasoning, pitched precisely to the band requested. Keep the LANGUAGE simple " +
+  "and easy for a 6-7 year old to read, but make the THINKING a real, satisfying " +
+  "challenge. A question may be one to three short sentences and can set a tiny " +
+  "scenario when that makes the problem richer, but never a long story. Vary the " +
+  "everyday context; do not theme every question around the same thing. You " +
+  "output STRICT JSON and nothing else: no prose, no code fences.";
 
 export function buildQuestionUser(
   subject: string,
@@ -558,3 +562,99 @@ Return JSON with EXACTLY this shape:
 }
 Make the "accept" list include the bare noun and the article forms, all lowercase.`;
 }
+
+// --- Weekly spelling dictation ---------------------------------------------
+export const DICTATION_GEN_SYSTEM =
+  "You write a short dictation passage for a 6-7 year old to practise spelling. " +
+  "Use the parent's spelling words naturally, keep sentences short and clear, and " +
+  "match the requested length and difficulty. Always reply with ONLY valid JSON.";
+
+export function buildDictationGenUser(
+  words: string[],
+  lengthLevel: "short" | "medium" | "long" = "short",
+  difficulty: "easy" | "medium" | "hard" = "easy",
+): string {
+  const n = lengthLevel === "long" ? "5 to 7" : lengthLevel === "medium" ? "3 to 5" : "2 to 3";
+  const wordList = words.length ? words.join(", ") : "(no words given — choose simple common words)";
+  return `Write a dictation passage of ${n} short sentences for a 6-7 year old to write down as you read it.
+Spelling words to include (use each at least once if possible): ${wordList}.
+Difficulty: ${difficulty} (easy = very simple words and short sentences; hard = longer sentences and a few trickier words).
+Keep punctuation simple (full stops, commas). Then suggest the difficulty you think fits these words.
+
+Return JSON with EXACTLY these keys:
+{
+  "title": "a short friendly title",
+  "sentences": ["sentence one.", "sentence two."],
+  "suggested_difficulty": "easy" | "medium" | "hard"
+}`;
+}
+
+export const DICTATION_MARK_SYSTEM =
+  "You are a kind teacher marking a young child's handwritten dictation from a photo. " +
+  "Read what the child wrote, compare it to the target passage, and check spelling " +
+  "gently and accurately. Always reply with ONLY valid JSON.";
+
+export function buildDictationMarkUser(passage: string, words: string[]): string {
+  return `The child was asked to write this passage from dictation:
+"""${passage}"""
+Key spelling words to check: ${words.join(", ") || "(none specified)"}.
+
+Look at the photo of what the child actually wrote. Transcribe it, then mark it kindly.
+
+Return JSON with EXACTLY these keys:
+{
+  "transcript": "your best reading of what the child wrote",
+  "score": number of correctly spelled target words (or words overall) the child got right,
+  "total": total number of words checked,
+  "mistakes": [{ "wrong": "what they wrote", "correct": "the correct spelling" }],
+  "feedback": "one or two warm, encouraging sentences for the child"
+}`;
+}
+
+// --- Daily coach (review of recent mistakes) -------------------------------
+export const COACH_SYSTEM =
+  "You are Atlas, a warm, patient personal tutor for a 6-7 year old. You look at " +
+  "what the child recently got wrong and gently coach them: explain the idea in " +
+  "very simple words, show ONE clear worked example solved step by step, and give " +
+  "a friendly approach/tip they can reuse. Be encouraging and never make them feel " +
+  "bad. Always reply with ONLY valid JSON.";
+
+export function buildCoachUser(
+  mistakes: { subject: string; skill: string; prompt: string; correct: string }[],
+  includeFrench: boolean,
+): string {
+  const list = mistakes
+    .map(
+      (m, i) =>
+        `${i + 1}. [${m.subject}${m.skill ? " / " + m.skill : ""}] Question: "${m.prompt}". Correct answer: "${m.correct}".`,
+    )
+    .join("\n");
+  const fr = includeFrench
+    ? 'For any item whose subject is "french", also include a "french" object with the explanation and example in French.'
+    : "";
+  return `Here is what the child recently got wrong:
+${list}
+
+Group them into up to 4 short coaching items (combine similar ones). For each, explain simply, show ONE worked example solved step by step (use the same kind of problem, fresh numbers/words), and give a reusable tip. ${fr}
+
+Return JSON with EXACTLY these keys:
+{
+  "intro": "one warm sentence to start the review",
+  "items": [
+    {
+      "title": "short friendly title, e.g. Adding big numbers",
+      "subject": "the subject",
+      "explanation_en": "simple explanation in 1-3 short sentences",
+      "example_en": "ONE worked example, solved step by step, kept short",
+      "tip_en": "a short reusable tip",
+      "french": { "explanation": "", "example": "" }
+    }
+  ]
+}`;
+}
+
+export const COACH_ASK_SYSTEM =
+  "You are Atlas, a warm, patient tutor talking out loud to a 6-7 year old. Answer " +
+  "their spoken question in a few short, simple, friendly sentences a young child " +
+  "understands. If it helps, give a tiny example. Keep it brief and kind. Reply with " +
+  "plain text only (no JSON, no markdown).";

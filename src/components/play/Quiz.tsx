@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   coveredSkillsThisWeek,
+  getKidSettings,
   getOrCreateTodaySession,
   persistAbility,
   recentTopics,
@@ -18,7 +19,6 @@ import { fallbackQuestion, randomEncourage, randomFact, randomPraise } from "@/l
 import {
   EASY_MISS_MAX_DIFFICULTY,
   QUESTIONS_PER_SUBJECT,
-  SECONDS_PER_QUESTION,
   SKILL_AREAS,
   SUBJECTS,
 } from "@/lib/config";
@@ -38,6 +38,39 @@ import { chime, primeVoices, speakSmart } from "@/lib/speech";
 // easy miss) all flows from that single attempt.
 
 type Phase = "loading" | "question" | "hint" | "feedback" | "between" | "done";
+
+// An "open writing" question is one where the child writes a whole sentence and
+// there's no single right answer to match (it's graded by the AI). These get NO
+// timer and a "take your time" message.
+function isOpenWriting(q: Question): boolean {
+  if (q.type === "open" || q.type === "creative") return true;
+  if (q.type === "short_text") {
+    const hasFixed = (q.answer && q.answer.trim().length > 0) || (q.acceptable && q.acceptable.length > 0);
+    return !hasFixed;
+  }
+  return false;
+}
+
+const FUNNY_CHEERS = [
+  "Boom! Nailed it!",
+  "Wowee, you're on fire!",
+  "Ka-pow! That's correct!",
+  "Yes yes yes! Super brain!",
+  "High five! That's spot on!",
+  "Woohoo! You cracked it!",
+  "Ding ding ding! Correct!",
+  "Brilliant! Your brain just levelled up!",
+  "Amazing! That was a tricky one!",
+  "Yesss! You're a superstar!",
+];
+const PLAIN_CHEERS = ["Well done!", "Brilliant!", "Correct!", "You got it!", "Nice one!", "Great work!"];
+const FUNNY_OOPS = [
+  "Oopsie daisy! Not quite — let's have another look together.",
+  "Whoops! That one was sneaky. Let's figure it out!",
+  "Close! Even great explorers take a wrong turn. Let's see!",
+  "Almost! Let's solve this one as a team.",
+];
+const PLAIN_OOPS = ["Good try! Let's look at this one together."];
 
 interface ResultView {
   verdict: Verdict;
@@ -128,6 +161,9 @@ export default function Quiz({
   const [attempt, setAttempt] = useState(1);
   const [hintText, setHintText] = useState("");
   const [hintLead, setHintLead] = useState("");
+  const [kid, setKid] = useState({ questionSeconds: 60, allowOvertime: true, funMode: true });
+  const kidRef = useRef(kid);
+  kidRef.current = kid;
 
   // Refs mirror the state that async callbacks (timer, grading) need to read.
   const phaseRef = useRef<Phase>("loading");
@@ -158,6 +194,15 @@ export default function Quiz({
       return;
     }
     primeVoices();
+    getKidSettings()
+      .then((k) =>
+        setKid({ questionSeconds: k.questionSeconds, allowOvertime: k.allowOvertime, funMode: k.funMode }),
+      )
+      .catch(() => {});
+    // A fun fact to kick things off (read aloud before the first question loads).
+    const startFact = randomFact();
+    setFact(startFact);
+    setTimeout(() => speakSmart(`Did you know? ${startFact}`, "en-GB"), 300);
     (async () => {
       let sid: string | null = null;
       try {
@@ -172,11 +217,49 @@ export default function Quiz({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Listen-first French questions: play the French as soon as the question shows.
+  // Read the question aloud automatically: French questions are always read in
+  // French, and longer English questions (more than 10 words) are read too, so
+  // the child never has to press the speaker. Open writing questions also get a
+  // "no rush" message and a friendly fact every minute while they think.
   useEffect(() => {
-    if (phase === "question" && question?.listening && question.audioText) {
-      speakSmart(question.audioText, question.audioLanguage || "fr-FR");
+    if (phase !== "question" || !question) return;
+    const isFrench = language === "fr" || currentSubject === "french";
+    const text = question.displayText || question.prompt;
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const open = isOpenWriting(question);
+    let alive = true;
+
+    (async () => {
+      if (question.listening && question.audioText) {
+        await speakSmart(question.audioText, question.audioLanguage || "fr-FR");
+      } else if (isFrench) {
+        await speakSmart(question.audioText || text, "fr-FR");
+      } else if (words > 10) {
+        await speakSmart(text, "en-GB");
+      }
+      if (alive && open && question.type !== "creative") {
+        await speakSmart(
+          "Don't worry about the time here. Take as long as you like to write your whole sentence.",
+          "en-GB",
+        );
+      }
+    })();
+
+    // While the child works on an untimed writing question, share a fact each
+    // minute so it feels like a teacher is with them.
+    let factTimer: ReturnType<typeof setInterval> | null = null;
+    if (open) {
+      factTimer = setInterval(() => {
+        if (!alive) return;
+        speakSmart(`Here's a fun one. ${randomFact()}`, "en-GB");
+      }, 60000);
     }
+
+    return () => {
+      alive = false;
+      if (factTimer) clearInterval(factTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, phase]);
 
   async function beginSubject(idx: number, sid: string | null) {
@@ -434,13 +517,14 @@ export default function Quiz({
       chime("correct");
       setCelebrate(true);
       setTimeout(() => setCelebrate(false), 1300);
-      const cheers = ["Well done!", "Brilliant!", "Awesome!", "You got it!", "Nice one!", "Super work!", "Fantastic!"];
+      const cheers = kidRef.current.funMode ? FUNNY_CHEERS : PLAIN_CHEERS;
       speakSmart(cheers[Math.floor(Math.random() * cheers.length)], "en-GB");
     } else if (finalVerdict === "partial" && opts.secondTry) {
       chime("hint");
-      speakSmart("Well done for getting there!", "en-GB");
+      speakSmart(kidRef.current.funMode ? "Yes! You got there in the end. Great sticking power!" : "Well done for getting there!", "en-GB");
     } else if (opts.reveal) {
-      speakSmart("Good try! Let's look at this one together.", "en-GB");
+      const oops = kidRef.current.funMode ? FUNNY_OOPS : PLAIN_OOPS;
+      speakSmart(oops[Math.floor(Math.random() * oops.length)], "en-GB");
     }
     setGrading(false);
     submittingRef.current = false;
@@ -562,6 +646,7 @@ export default function Quiz({
     setCelebrate(true);
     setTimeout(() => setCelebrate(false), 2200);
     setPhaseR("done");
+    setTimeout(() => speakSmart(`Great quest! Here's a fun fact before you go. ${randomFact()}`, "en-GB"), 600);
   }
 
   async function uploadArt(profileId: string, f: File) {
@@ -757,12 +842,22 @@ export default function Quiz({
             </div>
           )}
 
-          {question.type !== "creative" && (
+          {!isOpenWriting(question) && kid.questionSeconds > 0 && (
             <CountdownTimer
               key={`${subjIdx}-${count}-${attempt}`}
-              seconds={SECONDS_PER_QUESTION}
+              seconds={attempt === 2 ? Math.max(5, Math.ceil(kid.questionSeconds / 2)) : kid.questionSeconds}
+              overtimeSeconds={
+                kid.allowOvertime
+                  ? Math.ceil((attempt === 2 ? kid.questionSeconds / 2 : kid.questionSeconds) * 0.5)
+                  : 0
+              }
               onExpire={() => submit()}
             />
+          )}
+          {isOpenWriting(question) && question.type !== "creative" && (
+            <p className="text-center text-xs text-emerald">
+              ✍️ No timer here — take as long as you like to write your sentence.
+            </p>
           )}
 
           <PixelButton onClick={() => submit()} disabled={!canCheck} className="w-full py-4 text-sm">

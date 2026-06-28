@@ -101,6 +101,20 @@ const ttsCache = new Map<string, string>(); // "lang|text" -> base64 mp3 OR "FAL
 let sharedAudio: HTMLAudioElement | null = null;
 let currentAudio: HTMLAudioElement | null = null;
 
+// The voice the parent chose (an OpenAI voice id). Used for every spoken line.
+// Default is a warm, friendly voice. Set once after login via setVoicePref().
+let voicePref = "coral";
+export function setVoicePref(v: string): void {
+  if (v && typeof v === "string") {
+    voicePref = v;
+    // A changed voice means cached clips (in the old voice) should be dropped.
+    ttsCache.clear();
+  }
+}
+function pickTtsVoice(): string {
+  return voicePref || "coral";
+}
+
 let clipCancel: (() => void) | null = null;
 
 function stopAll(): void {
@@ -201,7 +215,7 @@ export async function speakSmart(text: string, lang = "en-GB"): Promise<void> {
   }
 
   try {
-    const voice = lang.toLowerCase().startsWith("fr") ? "shimmer" : "coral";
+    const voice = pickTtsVoice();
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -233,7 +247,7 @@ export async function speakNaturalOnly(text: string, lang = "en-GB"): Promise<bo
   if (b64 === "FALLBACK") return false;
   if (!b64) {
     try {
-      const voice = lang.toLowerCase().startsWith("fr") ? "shimmer" : "coral";
+      const voice = pickTtsVoice();
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -266,7 +280,7 @@ export async function prefetchSpeech(text: string, lang = "en-GB"): Promise<void
   const key = `${lang}|${clean}`;
   if (ttsCache.has(key)) return;
   try {
-    const voice = lang.toLowerCase().startsWith("fr") ? "shimmer" : "coral";
+    const voice = pickTtsVoice();
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -339,4 +353,9 @@ export function chime(kind: "correct" | "hint" | "done" = "correct"): void {
   } catch {
     /* ignore */
   }
+}
+
+// Stop any speech or audio clip immediately (used when leaving an activity).
+export function stopAllSpeech(): void {
+  stopAll();
 }

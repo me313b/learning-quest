@@ -9,6 +9,7 @@ import SpeakPro from "../french/SpeakPro";
 import Conversation from "../french/Conversation";
 import PictureNaming from "../french/PictureNaming";
 import SentenceBuilder from "../french/SentenceBuilder";
+import SpellingLab from "../SpellingLab";
 import GeneratedLab from "../GeneratedLab";
 import PhysicsLab from "../PhysicsLab";
 import PhetLibrary from "../phet/PhetLibrary";
@@ -650,7 +651,7 @@ const LAB_CARDS: { id: LabId; title: string; emoji: string; blurb: string; tint:
   { id: "music", title: "Music Maker", emoji: "🎵", blurb: "Tap note blocks to make tunes", tint: C.gold },
 ];
 
-type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "surprise" | "physics" | "science" | null;
+type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "surprise" | "physics" | "science" | null;
 
 export default function InteractiveLabs({ onExit, profileId }: { onExit: () => void; profileId: string }) {
   const [view, setView] = useState<View>(null);
@@ -670,6 +671,7 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
   if (view === "fr-talk") return <Conversation onBack={() => setView(null)} />;
   if (view === "fr-name") return <PictureNaming onBack={() => setView(null)} />;
   if (view === "fr-build") return <SentenceBuilder onBack={() => setView(null)} />;
+  if (view === "spelling") return <SpellingLab onBack={() => setView(null)} profileId={profileId} />;
   if (view === "surprise" && surprise) return <GeneratedLab subject={surprise} onBack={() => setView(null)} />;
 
   return (
@@ -774,6 +776,19 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
           </div>
         </button>
       </div>
+
+      {/* Weekly spelling dictation */}
+      <button
+        onClick={() => setView("spelling")}
+        className="flex w-full items-center gap-3 rounded-2xl border-4 border-black/50 p-3 text-left shadow-pixel"
+        style={{ background: "linear-gradient(160deg, rgba(74,237,217,0.16), rgba(20,16,28,0.96))" }}
+      >
+        <span className="text-2xl">✍️</span>
+        <div>
+          <div className="font-pixel text-[11px] text-diamond">Spelling Lab</div>
+          <div className="text-[11px] text-paper/60">Listen and write this week&apos;s words, then get them checked</div>
+        </div>
+      </button>
 
       {/* Optional AI surprise */}
       <button

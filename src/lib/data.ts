@@ -385,7 +385,7 @@ export async function grantBonusMinutes(
   try {
     const session = await getOrCreateTodaySession(profileId, []);
     const current = Number(session.bonus_minutes || 0);
-    const next = Math.max(0, current + deltaMinutes);
+    const next = Math.max(-600, current + deltaMinutes);
     await updateSession(session.id, { bonus_minutes: next });
     return next;
   } catch {
@@ -448,6 +448,137 @@ export async function phetActivityForProfile(
       .limit(limit);
     if (error) return [];
     return (data || []) as PhetActivity[];
+  } catch {
+    return [];
+  }
+}
+
+// Kid-facing controls the parent set (timer length, voice, fun reactions).
+// Best-effort with safe defaults so the quiz always works.
+export async function getKidSettings(): Promise<{
+  questionSeconds: number;
+  allowOvertime: boolean;
+  voice: string;
+  funMode: boolean;
+}> {
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("account_settings")
+      .select("question_seconds, allow_overtime, tts_voice, fun_mode")
+      .maybeSingle();
+    return {
+      questionSeconds: Number(data?.question_seconds ?? 60),
+      allowOvertime: data?.allow_overtime ?? true,
+      voice: (data?.tts_voice as string) || "coral",
+      funMode: data?.fun_mode ?? true,
+    };
+  } catch {
+    return { questionSeconds: 60, allowOvertime: true, voice: "coral", funMode: true };
+  }
+}
+
+// Weekly dictation config (set by the parent) + result tracking. Best-effort.
+export interface DictationConfig {
+  words: string[];
+  pause: number;
+  confirm: boolean;
+  length: "short" | "medium" | "long";
+  difficulty: "easy" | "medium" | "hard";
+}
+
+export async function getDictationConfig(): Promise<DictationConfig> {
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("account_settings")
+      .select("spelling_words, dictation_pause, dictation_confirm, dictation_length, dictation_difficulty")
+      .maybeSingle();
+    const len = String(data?.dictation_length || "short");
+    const diff = String(data?.dictation_difficulty || "easy");
+    return {
+      words: (data?.spelling_words as string[]) || [],
+      pause: Number(data?.dictation_pause ?? 4) || 4,
+      confirm: data?.dictation_confirm ?? false,
+      length: (len === "medium" || len === "long" ? len : "short") as "short" | "medium" | "long",
+      difficulty: (diff === "medium" || diff === "hard" ? diff : "easy") as "easy" | "medium" | "hard",
+    };
+  } catch {
+    return { words: [], pause: 4, confirm: false, length: "short", difficulty: "easy" };
+  }
+}
+
+export interface DictationRecord {
+  id: string;
+  profile_id: string;
+  score: number;
+  total: number;
+  words: string[];
+  created_at: string;
+}
+
+export async function recordDictation(a: {
+  profileId: string;
+  score: number;
+  total: number;
+  words: string[];
+}): Promise<void> {
+  try {
+    const supabase = createClient();
+    await supabase.from("dictation_log").insert({
+      profile_id: a.profileId,
+      score: a.score,
+      total: a.total,
+      words: a.words,
+    });
+  } catch {
+    /* table missing — ignore */
+  }
+}
+
+export async function dictationForProfile(profileId: string, limit = 50): Promise<DictationRecord[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("dictation_log")
+      .select("*")
+      .eq("profile_id", profileId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) return [];
+    return (data || []) as DictationRecord[];
+  } catch {
+    return [];
+  }
+}
+
+// Recent wrong answers grouped for the daily coach. Pulls from the child's
+// attempts; returns the most recent misses (incorrect/timeout) across days.
+export async function recentWrongAttempts(
+  profileId: string,
+  max = 8,
+): Promise<{ subject: string; skill: string; prompt: string; correct: string }[]> {
+  try {
+    const all = await attemptsForProfile(profileId);
+    const wrong = all
+      .filter((a) => a.verdict === "incorrect" || a.verdict === "timeout")
+      .slice(0, 40);
+    // De-duplicate by prompt, keep a spread of subjects.
+    const seen = new Set<string>();
+    const out: { subject: string; skill: string; prompt: string; correct: string }[] = [];
+    for (const a of wrong) {
+      const key = (a.prompt || "").slice(0, 60);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        subject: a.subject || "",
+        skill: a.skill || "",
+        prompt: a.prompt || "",
+        correct: a.correct_answer || "",
+      });
+      if (out.length >= max) break;
+    }
+    return out;
   } catch {
     return [];
   }

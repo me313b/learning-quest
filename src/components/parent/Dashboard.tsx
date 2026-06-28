@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { attemptsForProfile, deleteProfile, grantBonusMinutes, listProfiles, phetActivityForProfile, recentSessions } from "@/lib/data";
+import { attemptsForProfile, deleteProfile, dictationForProfile, grantBonusMinutes, listProfiles, phetActivityForProfile, recentSessions, type DictationRecord } from "@/lib/data";
 import {
   dailyAccuracy,
   difficultyTrend,
@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [phet, setPhet] = useState<PhetActivity[]>([]);
+  const [dictation, setDictation] = useState<DictationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
   const [noteLoading, setNoteLoading] = useState(false);
@@ -88,6 +89,11 @@ export default function Dashboard() {
       setPhet(await phetActivityForProfile(id));
     } catch {
       setPhet([]);
+    }
+    try {
+      setDictation(await dictationForProfile(id, 30));
+    } catch {
+      setDictation([]);
     }
   }, []);
 
@@ -123,13 +129,17 @@ export default function Dashboard() {
     const res = await grantBonusMinutes(selected.id, mins);
     if (res === null) {
       setBonusMsg("Couldn't update — run RUN-THIS-IN-SUPABASE.sql in Supabase once to switch this on.");
+    } else if (mins <= -9999) {
+      setBonusMsg("Today's bonus has been reset to zero.");
     } else if (mins < 0) {
-      setBonusMsg("Today's bonus has been reset.");
+      setBonusMsg(`Deducted ${-mins} min — today's adjustment is now ${res} min.`);
     } else {
-      setBonusMsg(`Added ${mins} min — today's bonus is now ${res} min.`);
+      setBonusMsg(`Added ${mins} min — today's adjustment is now ${res} min.`);
     }
     setGrantingBonus(false);
   }
+
+  const [customMin, setCustomMin] = useState("15");
 
   const stats = useMemo(() => overallStats(attempts), [attempts]);
   const trend = useMemo(() => difficultyTrend(attempts), [attempts]);
@@ -346,7 +356,7 @@ export default function Dashboard() {
         <div className="mc-card-dark space-y-2">
           <h3 className="font-pixel text-xs text-grasstop">🎁 Bonus video minutes (today)</h3>
           <p className="text-xs text-paper/60">
-            Give {selected.name} extra minutes for today only, on top of what they earn.
+            Give {selected.name} extra minutes for today only, on top of what they earn — or deduct minutes.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -371,7 +381,64 @@ export default function Dashboard() {
               Reset
             </button>
           </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <input
+              type="number"
+              min={1}
+              max={600}
+              value={customMin}
+              onChange={(e) => setCustomMin(e.target.value)}
+              className="mc-input w-20 text-center"
+              aria-label="Custom minutes"
+            />
+            <span className="text-xs text-paper/55">minutes</span>
+            <button
+              onClick={() => giveBonus(Math.max(1, Math.min(600, parseInt(customMin, 10) || 0)))}
+              disabled={grantingBonus}
+              className="rounded-lg border-2 border-grasstop/60 bg-grass/15 px-3 py-1.5 text-sm text-paper disabled:opacity-50"
+            >
+              ➕ Add
+            </button>
+            <button
+              onClick={() => giveBonus(-Math.max(1, Math.min(600, parseInt(customMin, 10) || 0)))}
+              disabled={grantingBonus}
+              className="rounded-lg border-2 border-redstone/50 bg-redstone/15 px-3 py-1.5 text-sm text-paper disabled:opacity-50"
+            >
+              ➖ Deduct
+            </button>
+          </div>
           {bonusMsg && <p className="text-xs text-emerald">{bonusMsg}</p>}
+        </div>
+      )}
+
+      {dictation.length > 0 && (
+        <div className="mc-card-dark space-y-2">
+          <h3 className="font-pixel text-xs text-grasstop">✍️ Spelling progress</h3>
+          <p className="text-xs text-paper/60">
+            {dictation.length} dictation{dictation.length === 1 ? "" : "s"} ·{" "}
+            {(() => {
+              const withTotal = dictation.filter((d) => d.total > 0);
+              if (!withTotal.length) return "no scores yet";
+              const pct = Math.round(
+                (withTotal.reduce((s, d) => s + d.score / d.total, 0) / withTotal.length) * 100,
+              );
+              return `${pct}% average correct`;
+            })()}
+          </p>
+          <div className="space-y-1">
+            {dictation.slice(0, 6).map((d) => {
+              const pct = d.total > 0 ? Math.round((d.score / d.total) * 100) : 0;
+              return (
+                <div key={d.id} className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-1.5 text-sm">
+                  <span className="text-paper/60">{new Date(d.created_at).toLocaleDateString()}</span>
+                  <span className="text-paper/85">
+                    {d.score}/{d.total}
+                  </span>
+                  <span className={pct >= 60 ? "text-emerald" : "text-gold2"}>{pct}%</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

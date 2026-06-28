@@ -118,6 +118,10 @@ export interface SafeSettings {
   pinSet: boolean;
   rewardDailyCap: number;
   rewardPerCorrect: number;
+  questionSeconds: number;
+  allowOvertime: boolean;
+  voice: string;
+  funMode: boolean;
 }
 
 // --- French speaking lab shapes ---
@@ -157,4 +161,32 @@ export interface FrenchPicture {
   fr: string;
   en: string;
   accept: string[];
+}
+
+export interface DictationPassage {
+  title: string;
+  sentences: string[];
+  suggested_difficulty: "easy" | "medium" | "hard";
+}
+
+export interface DictationMark {
+  transcript: string;
+  score: number;
+  total: number;
+  mistakes: { wrong: string; correct: string }[];
+  feedback: string;
+}
+
+export interface CoachItem {
+  title: string;
+  subject: string;
+  explanation_en: string;
+  example_en: string;
+  tip_en: string;
+  french?: { explanation: string; example: string };
+}
+
+export interface CoachReview {
+  intro: string;
+  items: CoachItem[];
 }

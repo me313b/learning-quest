@@ -20,6 +20,7 @@ export default function Home({
   onReward,
   onLabs,
   onWorksheet,
+  onReview,
 }: {
   profile: Profile;
   attempts: Attempt[];
@@ -30,6 +31,7 @@ export default function Home({
   onReward: () => void;
   onLabs: () => void;
   onWorksheet: () => void;
+  onReview: () => void;
 }) {
   const quizSubjects = useMemo(
     () => [
@@ -38,7 +40,8 @@ export default function Home({
     ],
     [profile.enabled_subjects],
   );
-  const [selected, setSelected] = useState<string[]>(quizSubjects);
+  // Start with nothing selected so the child chooses their own quests.
+  const [selected, setSelected] = useState<string[]>([]);
   const [streak, setStreak] = useState(0);
   const [fixList, setFixList] = useState<string[]>([]);
   const [allAttempts, setAllAttempts] = useState<Attempt[]>([]);
@@ -180,6 +183,20 @@ export default function Home({
       {fixList.length > 0 && (
         <Banner variant="dirt">Today we&apos;ll fix: {fixList.slice(0, 3).join("  •  ")}</Banner>
       )}
+
+      {/* Atlas daily review — do this before today's quests */}
+      <button
+        onClick={onReview}
+        className="flex w-full items-center gap-3 rounded-2xl border-4 border-diamond/50 p-4 text-left shadow-pixel"
+        style={{ background: "linear-gradient(160deg, rgba(74,237,217,0.18), rgba(20,16,28,0.96))" }}
+      >
+        <span className="text-4xl">🛰️</span>
+        <div className="flex-1">
+          <div className="font-pixel text-[12px] text-diamond">Atlas: Today&apos;s review</div>
+          <div className="text-sm text-paper/70">A quick look at what to practise, with examples. Do this first!</div>
+        </div>
+        <span className="text-2xl text-paper/60">→</span>
+      </button>
 
       {/* Two columns on wide screens: quests on the left, things to do on the right */}
       <div className="grid gap-6 lg:grid-cols-5">

@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getProfile, getRewardSettings, getTodaySession, todayAttempts } from "@/lib/data";
+import { getKidSettings, getProfile, getRewardSettings, getTodaySession, todayAttempts } from "@/lib/data";
 import {
   availableSecondsToday,
   earnedSecondsFromAttempts,
 } from "@/lib/rewards";
-import { AVATARS } from "@/lib/config";
+import { AVATARS, CORE_SUBJECTS } from "@/lib/config";
 import { installAudioUnlock, isMusicOn, startMusic, stopMusic, toggleMusic } from "@/lib/music";
 import { prefetchSections } from "@/lib/prefetch";
+import { setVoicePref } from "@/lib/speech";
 import type { Attempt, Profile, Session } from "@/lib/types";
 import Home from "./Home";
 import Quiz from "./Quiz";
@@ -17,8 +18,9 @@ import Reward from "./Reward";
 import Labs from "./Labs";
 import Welcome from "./Welcome";
 import Worksheet from "./Worksheet";
+import DailyReview from "./DailyReview";
 
-type View = "welcome" | "home" | "quiz" | "reward" | "labs" | "worksheet";
+type View = "welcome" | "home" | "quiz" | "reward" | "labs" | "worksheet" | "review";
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
@@ -63,6 +65,10 @@ export default function GameShell({ profileId }: { profileId: string }) {
 
   useEffect(() => {
     load();
+    // Apply the parent's chosen voice to all spoken audio.
+    getKidSettings()
+      .then((k) => setVoicePref(k.voice))
+      .catch(() => {});
   }, [load]);
 
   // Soft background music plays on the home screen and stops inside activities.
@@ -153,6 +159,7 @@ export default function GameShell({ profileId }: { profileId: string }) {
           onReward={() => setView("reward")}
           onLabs={() => setView("labs")}
           onWorksheet={() => setView("worksheet")}
+          onReview={() => setView("review")}
         />
       )}
 
@@ -185,6 +192,15 @@ export default function GameShell({ profileId }: { profileId: string }) {
       )}
 
       {view === "labs" && <Labs onBack={() => setView("home")} profileId={profile.id} />}
+
+      {view === "review" && (
+        <DailyReview
+          profileId={profile.id}
+          subjects={[...CORE_SUBJECTS, ...(profile.enabled_subjects || [])]}
+          childName={profile.name}
+          onBack={() => setView("home")}
+        />
+      )}
 
       {view === "worksheet" && (
         <Worksheet
