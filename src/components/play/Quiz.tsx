@@ -825,6 +825,8 @@ export default function Quiz({
       setRecordHint("");
     } else if (res == null) {
       setRecordHint("I couldn't use the microphone. You can type your answer instead.");
+    } else if (res.noService) {
+      setRecordHint("Speaking practice needs the voice feature switched on in Parent settings. For now, please type your answer.");
     } else if (!res.heardSpeech) {
       setRecordHint("I didn't hear anything — tap again and speak a little louder, or type it.");
     } else {

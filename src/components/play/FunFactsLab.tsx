@@ -78,7 +78,14 @@ export default function FunFactsLab({ onBack }: { onBack: () => void }) {
 
   function showNext(speak = true) {
     if (posRef.current >= queueRef.current.length) {
-      pushUnique(bankFacts(catRef.current)); // never leave a gap
+      const before = queueRef.current.length;
+      pushUnique(bankFacts(catRef.current)); // prefer facts not seen yet
+      if (queueRef.current.length === before) {
+        // Every fact has been seen — start a fresh, reshuffled cycle so the
+        // stream keeps going with variety instead of repeating one line.
+        seenRef.current.clear();
+        queueRef.current.push(...bankFacts(catRef.current));
+      }
     }
     const next = queueRef.current[posRef.current] || "Learning new things makes your brain grow!";
     posRef.current += 1;

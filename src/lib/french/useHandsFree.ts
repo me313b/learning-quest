@@ -29,6 +29,9 @@ export interface ListenResult {
   text: string;
   audioUrl: string | null;
   heardSpeech: boolean;
+  // True when the server has no transcription service available (e.g. no API
+  // key), as opposed to simply not catching what was said.
+  noService?: boolean;
 }
 
 export function useHandsFree() {
@@ -177,6 +180,7 @@ export function useHandsFree() {
 
         const audioB64 = await blobToB64(blob);
         let text = "";
+        let noService = false;
         try {
           const res = await fetch("/api/transcribe", {
             method: "POST",
@@ -190,11 +194,12 @@ export function useHandsFree() {
           });
           const data = await res.json();
           if (typeof data.text === "string") text = data.text.trim();
+          if (data.fallback === true) noService = true;
         } catch {
           /* network error -> empty */
         }
         setStatus("idle");
-        return { text, audioUrl: urlRef.current, heardSpeech: true };
+        return { text, audioUrl: urlRef.current, heardSpeech: true, noService };
       } catch {
         cleanup();
         setStatus("idle");
