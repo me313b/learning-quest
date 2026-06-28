@@ -787,3 +787,85 @@ export async function generateFrenchBuilder(
   }
   return null;
 }
+
+// --------------------------------------------------------------------------- //
+// Infinite French scenarios (places) and picture items. Both return null on
+// failure so callers fall back to the built-in banks.
+// --------------------------------------------------------------------------- //
+import type { FrenchPicture, FrenchScenario } from "../types";
+import {
+  FRENCH_SCENARIO_SYSTEM,
+  buildFrenchScenarioUser,
+  FRENCH_PICTURE_SYSTEM,
+  buildFrenchPictureUser,
+} from "./prompts";
+
+export async function generateFrenchScenario(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  recent: string[] = [],
+): Promise<FrenchScenario | null> {
+  const user = buildFrenchScenarioUser(recent);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, FRENCH_SCENARIO_SYSTEM, user, { maxTokens: 400 });
+      const data = extractJson(raw);
+      const opener = data?.opener as { fr?: string; en?: string; hint_en?: string } | undefined;
+      if (data && typeof data.label === "string" && opener && opener.fr) {
+        return {
+          label: String(data.label).trim(),
+          emoji: typeof data.emoji === "string" ? data.emoji : "📍",
+          character: typeof data.character === "string" ? data.character : "🧑",
+          scene: Array.isArray(data.scene) ? (data.scene as unknown[]).map((s) => String(s)).slice(0, 5) : [],
+          setting: typeof data.setting === "string" ? data.setting : "",
+          opener: {
+            fr: String(opener.fr).trim(),
+            en: typeof opener.en === "string" ? opener.en : "",
+            hint_en: typeof opener.hint_en === "string" ? opener.hint_en : "",
+          },
+        };
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
+}
+
+export async function generateFrenchPictures(
+  provider: Provider,
+  apiKey: string,
+  model: string | undefined,
+  count = 8,
+  recent: string[] = [],
+): Promise<FrenchPicture[] | null> {
+  const user = buildFrenchPictureUser(count, recent);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chat(provider, apiKey, model, FRENCH_PICTURE_SYSTEM, user, { maxTokens: 700 });
+      const data = extractJson(raw);
+      const items = data?.items as unknown[] | undefined;
+      if (Array.isArray(items)) {
+        const out: FrenchPicture[] = [];
+        for (const it of items) {
+          const o = it as { emoji?: string; fr?: string; en?: string; accept?: unknown };
+          if (o && o.emoji && o.fr) {
+            out.push({
+              emoji: String(o.emoji),
+              fr: String(o.fr).trim(),
+              en: typeof o.en === "string" ? o.en : "",
+              accept: Array.isArray(o.accept)
+                ? (o.accept as unknown[]).map((a) => String(a).toLowerCase())
+                : [String(o.fr).toLowerCase()],
+            });
+          }
+        }
+        if (out.length > 0) return out;
+      }
+    } catch {
+      /* retry */
+    }
+  }
+  return null;
+}

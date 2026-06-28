@@ -9,6 +9,7 @@ export interface Scenario {
   setting: string; // English description that steers the AI character
   scene: string[]; // emoji used to animate the place
   bg: string; // card gradient
+  character?: string; // emoji for the person the child talks to
   opener: { fr: string; en: string; hint_en: string }; // used if AI is offline
 }
 

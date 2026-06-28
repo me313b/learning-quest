@@ -101,11 +101,18 @@ const ttsCache = new Map<string, string>(); // "lang|text" -> base64 mp3 OR "FAL
 let sharedAudio: HTMLAudioElement | null = null;
 let currentAudio: HTMLAudioElement | null = null;
 
+let clipCancel: (() => void) | null = null;
+
 function stopAll(): void {
   try {
     window.speechSynthesis?.cancel();
   } catch {
     /* ignore */
+  }
+  if (clipCancel) {
+    const c = clipCancel;
+    clipCancel = null;
+    c();
   }
   if (currentAudio) {
     try {
@@ -116,22 +123,64 @@ function stopAll(): void {
   }
 }
 
-// Reuse ONE <audio> element and just reset it each time. Creating a fresh
-// element per tap is unreliable on iPad/Safari (it often refuses to replay the
-// same clip); resetting currentTime and calling play() on a single element
-// replays dependably every press.
-function playB64(b64: string): void {
-  try {
-    if (!sharedAudio) sharedAudio = new Audio();
-    const src = `data:audio/mpeg;base64,${b64}`;
-    if (sharedAudio.src !== src) sharedAudio.src = src;
-    sharedAudio.currentTime = 0;
-    currentAudio = sharedAudio;
-    const p = sharedAudio.play();
-    if (p && typeof p.catch === "function") p.catch(() => {});
-  } catch {
-    /* ignore */
-  }
+// Reuse ONE <audio> element and reset it each time. Resolves only when the clip
+// FINISHES playing (or is interrupted/blocked/errors), so callers can reliably
+// wait for a spoken line to end before listening or speaking again. Returns true
+// only if it actually played to the end.
+function playClip(b64: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      if (!sharedAudio) sharedAudio = new Audio();
+      const audio = sharedAudio;
+      audio.src = `data:audio/mpeg;base64,${b64}`;
+      try {
+        audio.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+      currentAudio = audio;
+
+      let settled = false;
+      const cleanup = () => {
+        audio.removeEventListener("ended", onEnd);
+        audio.removeEventListener("error", onErr);
+        clearTimeout(timer);
+        if (clipCancel === cancel) clipCancel = null;
+      };
+      const onEnd = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(true);
+      };
+      const onErr = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(false);
+      };
+      const cancel = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        try {
+          audio.pause();
+        } catch {
+          /* ignore */
+        }
+        resolve(false);
+      };
+      clipCancel = cancel;
+
+      const timer = setTimeout(onEnd, 30000); // safety net if 'ended' never fires
+      audio.addEventListener("ended", onEnd);
+      audio.addEventListener("error", onErr);
+      const p = audio.play();
+      if (p && typeof p.catch === "function") p.catch(() => onErr());
+    } catch {
+      resolve(false);
+    }
+  });
 }
 
 /** Speak text with the best voice available. Use this everywhere in the UI. */
@@ -147,7 +196,7 @@ export async function speakSmart(text: string, lang = "en-GB"): Promise<void> {
     return;
   }
   if (cached) {
-    playB64(cached);
+    await playClip(cached);
     return;
   }
 
@@ -161,7 +210,7 @@ export async function speakSmart(text: string, lang = "en-GB"): Promise<void> {
     const data = await res.json();
     if (data.audioB64) {
       ttsCache.set(key, data.audioB64 as string);
-      playB64(data.audioB64 as string);
+      await playClip(data.audioB64 as string);
     } else {
       ttsCache.set(key, "FALLBACK");
       speak(clean, lang);
@@ -202,20 +251,11 @@ export async function speakNaturalOnly(text: string, lang = "en-GB"): Promise<bo
       return false;
     }
   }
-  // Play, and resolve true only if playback actually starts (it throws when the
-  // browser blocks autoplay without a user gesture).
-  try {
-    stopAll();
-    if (!sharedAudio) sharedAudio = new Audio();
-    const src = `data:audio/mpeg;base64,${b64}`;
-    if (sharedAudio.src !== src) sharedAudio.src = src;
-    sharedAudio.currentTime = 0;
-    currentAudio = sharedAudio;
-    await sharedAudio.play();
-    return true;
-  } catch {
-    return false;
-  }
+  // Play and resolve only when the clip FINISHES, so callers can wait for the
+  // line to end before listening or speaking again. Returns false if autoplay is
+  // blocked or playback fails.
+  stopAll();
+  return playClip(b64);
 }
 
 /** Warm the cache for a phrase WITHOUT playing it (used to preload audio in the

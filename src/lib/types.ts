@@ -141,3 +141,20 @@ export interface FrenchBuilder {
   distractors?: string[];
   hint_en?: string;
 }
+
+export interface FrenchScenario {
+  label: string;
+  emoji: string;
+  setting: string;
+  scene: string[];
+  character: string;
+  bg?: string;
+  opener: { fr: string; en: string; hint_en: string };
+}
+
+export interface FrenchPicture {
+  emoji: string;
+  fr: string;
+  en: string;
+  accept: string[];
+}

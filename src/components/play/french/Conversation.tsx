@@ -13,7 +13,7 @@ interface Msg {
   fr: string;
   en?: string;
 }
-type Phase = "thinking" | "speaking" | "listening" | "idle";
+type Phase = "thinking" | "speaking" | "listening" | "paused" | "idle";
 const MAX_AI_TURNS = 12;
 
 function wait(ms: number) {
@@ -29,10 +29,49 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
   const [noKey, setNoKey] = useState(false);
 
   const runningRef = useRef(false);
+  const busyRef = useRef(false);
   const messagesRef = useRef<Msg[]>([]);
   const aiTurnsRef = useRef(0);
   const emptyRef = useRef(0);
   const scenarioRef = useRef<Scenario | null>(null);
+  const recentPlacesRef = useRef<string[]>([]);
+  const [genLoading, setGenLoading] = useState(false);
+
+  async function surprise() {
+    if (genLoading) return;
+    setGenLoading(true);
+    let sc: Scenario | null = null;
+    try {
+      const res = await fetch("/api/french/scenario", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ recent: recentPlacesRef.current.slice(-12) }),
+      });
+      const data = await res.json();
+      if (data.scenario && data.scenario.opener?.fr) {
+        const s = data.scenario;
+        sc = {
+          id: `ai-${Date.now()}`,
+          label: s.label,
+          emoji: s.emoji || "📍",
+          setting: s.setting || "",
+          scene: Array.isArray(s.scene) && s.scene.length ? s.scene : [s.emoji || "✨"],
+          bg: "linear-gradient(160deg, rgba(124,92,224,0.24), rgba(20,16,28,0.96))",
+          character: s.character || "🧑",
+          opener: s.opener,
+        };
+        setNoKey(false);
+      } else if (data.fallback) {
+        setNoKey(true);
+      }
+    } catch {
+      /* fall through */
+    }
+    if (!sc) sc = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+    await prefetchSpeech(sc.opener.fr, "fr-FR");
+    setGenLoading(false);
+    begin(sc);
+  }
 
   useEffect(() => {
     // Warm the opening lines so the conversation can start the instant a place
@@ -49,17 +88,29 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
   }
 
   async function childTurn() {
-    if (!runningRef.current) return;
+    if (!runningRef.current || busyRef.current) return;
+    busyRef.current = true;
     setPhase("listening");
     const lastAiLine = [...messagesRef.current].reverse().find((m) => m.who === "ai")?.fr || "";
     const res = await listen(10000, { prompt: lastAiLine });
+    busyRef.current = false;
     if (!runningRef.current) return;
-    const said = (res?.text || "").trim();
+    if (res === null) {
+      // Microphone blocked or unavailable — pause rather than spamming the AI.
+      setPhase("paused");
+      return;
+    }
+    const said = (res.text || "").trim();
     if (said) {
       emptyRef.current = 0;
       push({ who: "child", fr: said });
     } else {
       emptyRef.current += 1;
+      if (emptyRef.current >= 3) {
+        // Don't let the AI talk to itself — wait for the child to tap.
+        setPhase("paused");
+        return;
+      }
     }
     await aiTurn(said);
   }
@@ -136,6 +187,7 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
 
   async function begin(sc: Scenario) {
     scenarioRef.current = sc;
+    recentPlacesRef.current = [sc.label, ...recentPlacesRef.current.filter((l) => l !== sc.label)].slice(0, 12);
     setScenario(sc);
     messagesRef.current = [];
     setMessages([]);
@@ -174,13 +226,22 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
           </button>
           <span className="font-pixel text-[11px] text-diamond">💬 Talk in French</span>
         </div>
-        <p className="text-sm text-paper/75">Pick a place. You&apos;ll chat with someone there — just talk, no buttons!</p>
+        <p className="text-sm text-paper/75">Pick a place, or get a surprise one. You&apos;ll chat with someone there — just talk, no buttons!</p>
+        <button
+          onClick={surprise}
+          disabled={genLoading}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-4 border-diamond/50 p-3 font-pixel text-[11px] text-paper shadow-pixel disabled:opacity-60"
+          style={{ background: "linear-gradient(160deg, rgba(124,92,224,0.3), rgba(20,16,28,0.96))" }}
+        >
+          {genLoading ? "✨ Finding a new place…" : "🎲 Surprise place!"}
+        </button>
         <div className="grid grid-cols-2 gap-3">
           {SCENARIOS.map((sc) => (
             <button
               key={sc.id}
               onClick={() => begin(sc)}
-              className="flex flex-col gap-1 rounded-2xl border-4 border-black/50 p-4 text-left shadow-pixel"
+              disabled={genLoading}
+              className="flex flex-col gap-1 rounded-2xl border-4 border-black/50 p-4 text-left shadow-pixel disabled:opacity-60"
               style={{ background: sc.bg }}
             >
               <span className="text-3xl">{sc.emoji}</span>
@@ -227,7 +288,7 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
           animate={{ rotate: phase === "speaking" ? [0, -6, 6, 0] : 0 }}
           transition={{ duration: 0.6, repeat: phase === "speaking" ? Infinity : 0 }}
         >
-          🧑‍🍳
+          {scenario.character || "🧑‍🍳"}
         </motion.div>
       </div>
 
@@ -252,6 +313,7 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
       <div className="min-h-[52px] text-center">
         {phase === "thinking" && <p className="animate-pulse text-sm text-paper/60">…</p>}
         {phase === "speaking" && <p className="text-sm text-diamond">🔊 Listen…</p>}
+        {phase === "paused" && <p className="text-sm text-gold2">Ready when you are — tap 🎙️ to talk</p>}
         {phase === "listening" && (
           <div className="flex flex-col items-center gap-1.5">
             <p className="text-sm text-grasstop">🎙️ Your turn — answer!</p>
@@ -275,8 +337,8 @@ export default function Conversation({ onBack }: { onBack: () => void }) {
         >
           🔊 Say again
         </button>
-        {runningRef.current && phase !== "listening" && (
-          <button onClick={childTurn} className="rounded-lg border-2 border-grasstop/40 bg-grass/10 px-3 py-2 text-xs text-paper/85">
+        {runningRef.current && phase === "paused" && (
+          <button onClick={childTurn} className="rounded-lg border-2 border-grasstop/40 bg-grass/10 px-4 py-2 text-sm text-paper/85">
             🎙️ My turn
           </button>
         )}

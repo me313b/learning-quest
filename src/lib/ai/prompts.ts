@@ -442,11 +442,12 @@ Return JSON with EXACTLY these keys:
 }
 
 export const FRENCH_CONVO_SYSTEM =
-  "You are role-playing a friendly French person chatting with a 6-7 year old who is " +
+  "You are role-playing a real, friendly French person chatting with a 6-7 year old who is " +
   "learning French. Stay fully in character for the place. Speak ONLY in very simple French, " +
-  "one short line at a time (about 3 to 9 words), present tense, common words. Be warm, playful " +
-  "and encouraging. Always end your line with a simple question so the child can reply. Always " +
-  "reply with ONLY valid JSON.";
+  "ONE short line at a time (about 3 to 9 words), present tense, common words. React SPECIFICALLY " +
+  "to what the child just said (don't ignore it or repeat yourself), keep it warm, lively, varied " +
+  "and natural like a real person, and move the little story forward. Always end your line with a " +
+  "simple question so the child can reply. Always reply with ONLY valid JSON.";
 
 export function buildFrenchConvoUser(
   scenario: string,
@@ -500,4 +501,60 @@ Return JSON with EXACTLY these keys:
   "distractors": ["extraword"],
   "hint_en": "a short hint about what the sentence means"
 }`;
+}
+
+// --- Infinite conversation locations ---------------------------------------
+export const FRENCH_SCENARIO_SYSTEM =
+  "You invent a fun, child-friendly place for a 6-7 year old to have a short French role-play " +
+  "conversation in. Anything a young child would enjoy: café, bakery, zoo, beach, park, toy shop, " +
+  "ice-cream van, farm, school, doctor, train, birthday party, pet shop, restaurant, library, " +
+  "space station, aquarium, fruit market, and so on. Always reply with ONLY valid JSON.";
+
+export function buildFrenchScenarioUser(recent: string[] = []): string {
+  const avoid =
+    recent.length > 0
+      ? `Do NOT pick any of these recently used places: ${recent.join(", ")}.`
+      : "";
+  return `Invent ONE fun place for a young child to chat in French. ${avoid}
+Give a warm character who works/is there and starts the conversation with ONE simple French line (3 to 9 words) that ends in a question.
+
+Return JSON with EXACTLY these keys:
+{
+  "label": "short English name of the place, e.g. At the Bakery",
+  "emoji": "one emoji for the place",
+  "character": "one emoji for the person the child talks to",
+  "scene": ["3", "or", "4", "emoji that decorate the place"],
+  "setting": "one English sentence telling the character who they are and what to talk about with the child",
+  "opener": {
+    "fr": "the character's first short French line (ends with a question)",
+    "en": "English translation",
+    "hint_en": "a tiny English hint to help the child answer"
+  }
+}`;
+}
+
+// --- Infinite picture-naming items -----------------------------------------
+export const FRENCH_PICTURE_SYSTEM =
+  "You make picture-naming flashcards for a 6-7 year old learning French. Each item is a single, " +
+  "common, concrete thing that has a clear, well-known emoji (animals, food, toys, clothes, " +
+  "vehicles, nature, everyday objects). Always reply with ONLY valid JSON.";
+
+export function buildFrenchPictureUser(count = 8, recent: string[] = []): string {
+  const avoid =
+    recent.length > 0 ? `Avoid these recently used words: ${recent.join(", ")}.` : "";
+  return `Give ${count} different, common things a young child can name in French. ${avoid}
+Each must have a single clear emoji that obviously shows the thing. Use everyday, concrete nouns only.
+
+Return JSON with EXACTLY this shape:
+{
+  "items": [
+    {
+      "emoji": "single emoji",
+      "fr": "the French word WITH its article, e.g. le chien",
+      "en": "English meaning",
+      "accept": ["chien", "le chien", "un chien"]
+    }
+  ]
+}
+Make the "accept" list include the bare noun and the article forms, all lowercase.`;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useHandsFree } from "@/lib/french/useHandsFree";
 import { normFr, praiseFr } from "@/lib/french/compare";
@@ -24,7 +24,7 @@ function accepts(item: PictureItem, answer: string): boolean {
 
 export default function PictureNaming({ onBack }: { onBack: () => void }) {
   const { status: micStatus, level: mic, listen, stopEarly } = useHandsFree();
-  const queue = useMemo(() => shufflePictures(), []);
+  const [queue, setQueue] = useState<PictureItem[]>(() => shufflePictures().slice(0, 6));
   const [idx, setIdx] = useState(0);
   const [typed, setTyped] = useState("");
   const [status, setStatus] = useState<Status>("");
@@ -32,8 +32,45 @@ export default function PictureNaming({ onBack }: { onBack: () => void }) {
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recentRef = useRef<string[]>([]);
+  const loadingRef = useRef(false);
 
   const item = queue[idx % queue.length];
+
+  // Pull an endless supply of picture cards from the AI, topping up the queue
+  // before we run out. Falls back to the built-in bank without an OpenAI key.
+  const loadMore = useCallback(async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    try {
+      const res = await fetch("/api/french/picture", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ count: 8, recent: recentRef.current.slice(-30) }),
+      });
+      const data = await res.json();
+      const merge = (items: PictureItem[]) =>
+        setQueue((q) => {
+          const seen = new Set(q.map((x) => x.fr.toLowerCase()));
+          const add = items.filter((x) => x && x.fr && x.emoji && !seen.has(x.fr.toLowerCase()));
+          return add.length ? [...q, ...add] : q;
+        });
+      if (Array.isArray(data.items) && data.items.length) merge(data.items as PictureItem[]);
+      else if (data.fallback) merge(shufflePictures());
+    } catch {
+      /* current queue still works */
+    } finally {
+      loadingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMore();
+  }, [loadMore]);
+
+  useEffect(() => {
+    if (idx >= queue.length - 3) loadMore();
+  }, [idx, queue.length, loadMore]);
 
   useEffect(() => {
     // Read the prompt aloud when a new picture appears.
@@ -42,6 +79,7 @@ export default function PictureNaming({ onBack }: { onBack: () => void }) {
     setStatus("");
     setHeard("");
     inputRef.current?.focus();
+    if (item?.fr) recentRef.current = [...recentRef.current, item.fr].slice(-40);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx]);
 
