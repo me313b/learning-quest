@@ -12,6 +12,7 @@ import SentenceBuilder from "../french/SentenceBuilder";
 import SpellingLab from "../SpellingLab";
 import ExternalLibrary from "../explore/ExternalLibrary";
 import FunFactsLab from "../FunFactsLab";
+import StoryCinema from "../StoryCinema";
 import GeneratedLab from "../GeneratedLab";
 import PhysicsLab from "../PhysicsLab";
 import PhetLibrary from "../phet/PhetLibrary";
@@ -653,7 +654,7 @@ const LAB_CARDS: { id: LabId; title: string; emoji: string; blurb: string; tint:
   { id: "music", title: "Music Maker", emoji: "🎵", blurb: "Tap note blocks to make tunes", tint: C.gold },
 ];
 
-type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "explore" | "facts" | "surprise" | "physics" | "science" | null;
+type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "explore" | "facts" | "cinema" | "surprise" | "physics" | "science" | null;
 
 export default function InteractiveLabs({ onExit, profileId }: { onExit: () => void; profileId: string }) {
   const [view, setView] = useState<View>(null);
@@ -681,6 +682,7 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
   if (view === "spelling") return <SpellingLab onBack={() => setView(null)} profileId={profileId} />;
   if (view === "explore") return <ExternalLibrary onBack={() => setView(null)} />;
   if (view === "facts") return <FunFactsLab onBack={() => setView(null)} />;
+  if (view === "cinema") return <StoryCinema onBack={() => setView(null)} />;
   if (view === "surprise" && surprise) return <GeneratedLab subject={surprise} onBack={() => setView(null)} />;
 
   return (
@@ -784,6 +786,25 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
             <div className="text-[11px] text-paper/60">Hear words, listen-and-choose, learn new ones</div>
           </div>
         </button>
+      </div>
+
+      {/* Movie Night — fun French story films with on-screen script */}
+      <div className="space-y-2">
+        <p className="font-pixel text-[10px] text-paper/50">🍿 Movie Night</p>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setView("cinema")}
+          className="flex w-full items-center gap-3 rounded-2xl border-4 border-gold/50 p-3 text-left shadow-pixel"
+          style={{ background: "linear-gradient(160deg, rgba(124,92,224,0.26), rgba(242,178,51,0.12), rgba(20,16,28,0.96))" }}
+        >
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl" style={{ background: "rgba(242,178,51,0.18)", boxShadow: "inset 0 0 0 2px rgba(242,178,51,0.4)" }}>
+            🎬
+          </span>
+          <div>
+            <div className="font-pixel text-[11px] text-gold2">French Story Cinema</div>
+            <div className="text-[11px] text-paper/60">Watch story films in French — the words light up as they are read, subtitles on or off</div>
+          </div>
+        </motion.button>
       </div>
 
       {/* Weekly spelling dictation */}

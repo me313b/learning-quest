@@ -272,6 +272,92 @@ export async function speakNaturalOnly(text: string, lang = "en-GB"): Promise<bo
   return playClip(b64);
 }
 
+/** Speak a single line and resolve only when it FINISHES (or is interrupted).
+ *  Tries the natural server voice first; if that's unavailable it uses the
+ *  browser voice and still waits for it to end; if even that can't speak it
+ *  resolves after a readable delay, so a synchronised caller (e.g. the story
+ *  cinema that highlights each line) always advances. Returns true if a real
+ *  voice spoke it. Interrupt with stopAllSpeech(). */
+export async function speakLine(text: string, lang = "en-GB"): Promise<boolean> {
+  const clean = (text || "").trim();
+  if (!clean) return false;
+
+  // 1) Natural server voice (cached), waits for the clip to end.
+  const key = `${lang}|${clean}`;
+  let b64 = ttsCache.get(key);
+  if (b64 && b64 !== "FALLBACK") {
+    stopAll();
+    return playClip(b64);
+  }
+  if (b64 !== "FALLBACK") {
+    try {
+      const voice = pickTtsVoice();
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: clean, voice, lang }),
+      });
+      const data = await res.json();
+      if (data.audioB64) {
+        b64 = data.audioB64 as string;
+        ttsCache.set(key, b64);
+        stopAll();
+        return playClip(b64);
+      }
+      ttsCache.set(key, "FALLBACK");
+    } catch {
+      /* fall through to the browser voice */
+    }
+  }
+
+  // 2) Browser voice, resolved when the utterance ends.
+  const spoke = await speakBrowserLine(clean, lang);
+  if (spoke) return true;
+
+  // 3) Nothing could speak — wait a readable amount of time so the highlight
+  //    still moves along (roughly a young learner's reading pace).
+  const ms = Math.min(9000, Math.max(1500, clean.split(/\s+/).length * 430));
+  await new Promise((r) => setTimeout(r, ms));
+  return false;
+}
+
+function speakBrowserLine(text: string, lang: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        resolve(false);
+        return;
+      }
+      const synth = window.speechSynthesis;
+      synth.cancel();
+      let settled = false;
+      const finish = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        resolve(ok);
+      };
+      const start = () => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        const v = pickVoice(lang);
+        if (v) u.voice = v;
+        u.rate = 0.9;
+        u.pitch = 1.0;
+        u.onend = () => finish(true);
+        u.onerror = () => finish(false);
+        synth.speak(u);
+        // Safety net: some browsers don't fire onend reliably.
+        const ms = Math.min(12000, Math.max(1600, text.split(/\s+/).length * 480));
+        setTimeout(() => finish(true), ms);
+      };
+      if (synth.getVoices().length === 0) setTimeout(start, 250);
+      else start();
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
 /** Warm the cache for a phrase WITHOUT playing it (used to preload audio in the
  *  background after login so the first tap is instant). */
 export async function prefetchSpeech(text: string, lang = "en-GB"): Promise<void> {
