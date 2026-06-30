@@ -15,6 +15,7 @@ import FunFactsLab from "../FunFactsLab";
 import StoryCinema from "../StoryCinema";
 import GeneratedLab from "../GeneratedLab";
 import PhysicsLab from "../PhysicsLab";
+import ChemistryLab from "../ChemistryLab";
 import PhetLibrary from "../phet/PhetLibrary";
 import { LAB_SUBJECTS, type LabSubject } from "@/lib/labs";
 
@@ -654,7 +655,7 @@ const LAB_CARDS: { id: LabId; title: string; emoji: string; blurb: string; tint:
   { id: "music", title: "Music Maker", emoji: "🎵", blurb: "Tap note blocks to make tunes", tint: C.gold },
 ];
 
-type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "explore" | "facts" | "cinema" | "surprise" | "physics" | "science" | null;
+type View = LabId | "fr-audio" | "fr-reading" | "fr-speak" | "fr-talk" | "fr-name" | "fr-build" | "spelling" | "explore" | "facts" | "cinema" | "surprise" | "physics" | "chemistry" | "science" | null;
 
 export default function InteractiveLabs({ onExit, profileId }: { onExit: () => void; profileId: string }) {
   const [view, setView] = useState<View>(null);
@@ -672,6 +673,7 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
   if (view === "gravity") return <GravityLab onBack={() => setView(null)} />;
   if (view === "music") return <NoteBlockLab onBack={() => setView(null)} />;
   if (view === "physics") return <PhysicsLab onBack={() => setView(null)} />;
+  if (view === "chemistry") return <ChemistryLab onBack={() => setView(null)} />;
   if (view === "science") return <PhetLibrary onBack={() => setView(null)} profileId={profileId} />;
   if (view === "fr-audio") return <FrenchAudioLab onBack={() => setView(null)} />;
   if (view === "fr-reading") return <FrenchReadingLab onBack={() => setView(null)} />;
@@ -715,6 +717,20 @@ export default function InteractiveLabs({ onExit, profileId }: { onExit: () => v
       {/* Science & physics — real interactive experiments */}
       <div className="space-y-2">
         <p className="font-pixel text-[10px] text-paper/50">🔬 Science &amp; physics</p>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setView("chemistry")}
+          className="flex w-full items-center gap-3 rounded-2xl border-4 border-redstone/50 p-3 text-left shadow-pixel"
+          style={{ background: "linear-gradient(160deg, rgba(224,83,61,0.24), rgba(156,92,224,0.14), rgba(20,16,28,0.96))" }}
+        >
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl" style={{ background: "rgba(224,83,61,0.18)", boxShadow: "inset 0 0 0 2px rgba(224,83,61,0.4)" }}>
+            🧪
+          </span>
+          <div>
+            <div className="font-pixel text-[11px] text-redstone">Chemistry Lab</div>
+            <div className="text-[11px] text-paper/60">Test acids, fizz a reaction, mix colours, build atoms — do it yourself</div>
+          </div>
+        </motion.button>
         <div className="grid grid-cols-2 gap-3">
           <motion.button
             whileTap={{ scale: 0.95 }}
