@@ -71,6 +71,23 @@ const CM4K_CREDIT = "Coolmath4Kids (coolmath4kids.com)";
 const MOLVIEW_CREDIT = "MolView — open-source chemistry visualisation by Herman Bergwerf (molview.org)";
 const FALSTAD_CREDIT = "CircuitJS — by Paul Falstad & Iain Sharp, free in the browser (falstad.com/circuit)";
 
+const PHET_CREDIT =
+  "PhET Interactive Simulations, University of Colorado Boulder — free and openly licensed (phet.colorado.edu)";
+const MLC_CREDIT = "The Math Learning Center — free maths apps (mathlearningcenter.org)";
+
+// PhET sims all embed from the same URL shape, so a helper keeps them tidy and
+// typo-free. Every slug used below is one that already works in the PhET Lab.
+function phet(slug: string, title: string, emoji: string, category: ExternalCategoryId, description: string): ExternalResource {
+  const u = `https://phet.colorado.edu/sims/html/${slug}/latest/${slug}_en.html`;
+  return { id: `phet-${slug}`, title, emoji, description, provider: "PhET", credit: PHET_CREDIT, category, url: u, embedUrl: u };
+}
+
+// Math Learning Center apps are standalone web apps that embed in an iframe.
+function mlc(name: string, title: string, emoji: string, category: ExternalCategoryId, description: string): ExternalResource {
+  const u = `https://apps.mathlearningcenter.org/${name}`;
+  return { id: `mlc-${name}`, title, emoji, description, provider: "Math Learning Center", credit: MLC_CREDIT, category, url: u, embedUrl: u };
+}
+
 export const EXTERNAL_RESOURCES: ExternalResource[] = [
   // ---- MATHS: GeoGebra apps (in-page via official API) ----------------------
   { id: "ggb-graphing", title: "Graphing Calculator", emoji: "📈", description: "Type an equation and watch it draw a graph.", provider: "GeoGebra", credit: GGB_CREDIT, category: "maths", url: "https://www.geogebra.org/graphing", engine: { type: "geogebra", app: "graphing" } },
@@ -117,6 +134,68 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   { id: "molview-caffeine", title: "Caffeine in 3D", emoji: "☕", description: "See the molecule that makes coffee and tea wake you up, spinning in 3D.", provider: "MolView", credit: MOLVIEW_CREDIT, category: "science", url: "https://embed.molview.org/v1/?mode=balls&cid=2519&bg=white", embedUrl: "https://embed.molview.org/v1/?mode=balls&cid=2519&bg=white" },
   { id: "molview-sugar", title: "Sugar in 3D", emoji: "🍬", description: "Spin a sugar molecule (sucrose) and see all the atoms that make it sweet.", provider: "MolView", credit: MOLVIEW_CREDIT, category: "science", url: "https://embed.molview.org/v1/?mode=balls&cid=5988&bg=white", embedUrl: "https://embed.molview.org/v1/?mode=balls&cid=5988&bg=white" },
   { id: "falstad-circuit", title: "Circuit Lab", emoji: "🔌", description: "Build real electric circuits with batteries, switches, bulbs and wires, and watch the current flow. A proper electronics lab.", provider: "Falstad / Sharp", credit: FALSTAD_CREDIT, category: "science", url: "https://www.falstad.com/circuit/circuitjs.html", embedUrl: "https://www.falstad.com/circuit/circuitjs.html" },
+
+  // ---- PhET: the best of maths & algebra, embedded --------------------------
+  phet("area-builder", "Area Builder", "🟩", "maths", "Build shapes from tiles and discover area and perimeter."),
+  phet("area-model-multiplication", "Area Model Multiplication", "🔢", "maths", "See multiplication as the area of a rectangle."),
+  phet("arithmetic", "Times Tables Arithmetic", "✖️", "maths", "Practise multiplication, division and factors as a game."),
+  phet("fraction-matcher", "Fraction Matcher", "🍕", "maths", "Match pictures of fractions to the right numbers."),
+  phet("build-a-fraction", "Build a Fraction", "🧩", "maths", "Make fractions from parts to hit a target."),
+  phet("number-line-integers", "Number Line: Integers", "➖", "maths", "Jump along the number line into negative numbers."),
+  phet("function-builder", "Function Machine", "⚙️", "maths", "Drop numbers into a machine and work out the hidden rule."),
+  phet("graphing-lines", "Graphing Lines", "📈", "maths", "Move a line around and watch its equation change."),
+  phet("equality-explorer-basics", "Balance Equations", "⚖️", "maths", "Keep both sides equal on a balance to solve for the unknown."),
+  phet("plinko-probability", "Plinko Probability", "🎰", "maths", "Drop balls down a pin board and watch chance make a pattern."),
+  phet("vector-addition", "Vector Addition", "➡️", "maths", "Add arrows together to learn about vectors."),
+
+  // ---- PhET: the best of physics, chemistry, space & biology, embedded ------
+  phet("forces-and-motion-basics", "Forces and Motion", "🛷", "science", "Push, pull and play tug-of-war to learn about forces."),
+  phet("balancing-act", "Balancing Act", "🤸", "science", "Balance a seesaw with different weights and distances."),
+  phet("energy-skate-park-basics", "Energy Skate Park", "🛹", "science", "Skate a ramp and watch energy change as you go."),
+  phet("pendulum-lab", "Pendulum Lab", "🕰️", "science", "Swing a pendulum and find out what changes its speed."),
+  phet("projectile-motion", "Projectile Motion", "🎯", "science", "Fire a cannon and explore how things fly through the air."),
+  phet("circuit-construction-kit-dc", "Circuit Construction Kit", "🔋", "science", "Wire up batteries, bulbs and switches to build circuits."),
+  phet("balloons-and-static-electricity", "Static Electricity", "🎈", "science", "Rub a balloon on a jumper and zap things with static."),
+  phet("magnets-and-electromagnets", "Magnets & Electromagnets", "🧲", "science", "Play with magnets and turn electricity into magnetism."),
+  phet("bending-light", "Bending Light", "🌈", "science", "Shine a beam through water and glass and watch it bend."),
+  phet("density", "Density: Float or Sink", "🛟", "science", "Find out why some things float and others sink."),
+  phet("gravity-and-orbits", "Gravity and Orbits", "🪐", "science", "Move the Sun, Earth and Moon and watch gravity at work."),
+  phet("my-solar-system", "My Solar System", "☀️", "science", "Build your own solar system and set the planets spinning."),
+  phet("wave-on-a-string", "Wave on a String", "〰️", "science", "Wiggle a string and send waves travelling along it."),
+  phet("natural-selection", "Natural Selection", "🐰", "science", "Watch rabbits change over time to survive their world."),
+  phet("build-an-atom", "Build an Atom", "⚛️", "science", "Add protons, neutrons and electrons to build any atom."),
+  phet("states-of-matter-basics", "States of Matter", "🧊", "science", "Heat and cool things into solids, liquids and gases."),
+  phet("ph-scale-basics", "pH Scale: Acids & Bases", "🧪", "science", "Test everyday liquids to see if they are acid or base."),
+
+  // ---- Math Learning Center: hands-on maths apps, embedded ------------------
+  mlc("number-pieces", "Number Pieces", "🧱", "maths", "Place-value blocks for tens and ones, adding and regrouping."),
+  mlc("number-frames", "Number Frames", "🔲", "maths", "Ten-frames and dots to build strong number sense."),
+  mlc("number-line", "Number Line", "📏", "maths", "A flexible number line for counting and jumps."),
+  mlc("number-rack", "Number Rack", "🧮", "maths", "Sliding beads (a rekenrek) for adding and subtracting."),
+  mlc("money-pieces", "Money Pieces", "💷", "maths", "Coins and notes to count money and make change."),
+  mlc("fractions", "Fractions", "🍰", "maths", "Bars and circles to build and compare fractions."),
+  mlc("pattern-shapes", "Pattern Shapes", "🔷", "maths", "Fit pattern blocks together to explore shapes and angles."),
+  mlc("geoboard", "Geoboard", "📐", "maths", "Stretch bands on pegs to make shapes and measure area."),
+  mlc("math-clock", "Math Clock", "🕓", "maths", "Play with clocks and learn to tell the time."),
+  mlc("partial-product-finder", "Partial Products", "✳️", "maths", "Break a multiplication into easy partial products."),
+
+  // ---- More best-of activities (these open in a new tab) --------------------
+  { id: "topmarks", title: "Topmarks Maths", emoji: "🎯", description: "Brilliant maths games including Hit the Button for quick recall.", provider: "Topmarks", credit: "Topmarks Education (topmarks.co.uk)", category: "maths", url: "https://www.topmarks.co.uk/maths-games/7-11-years/" },
+  { id: "mathsframe", title: "Mathsframe", emoji: "🖼️", description: "Hundreds of UK primary maths games matched to the curriculum.", provider: "Mathsframe", credit: "Mathsframe (mathsframe.co.uk)", category: "maths", url: "https://mathsframe.co.uk/" },
+  { id: "mathplayground", title: "Math Playground", emoji: "🛝", description: "Maths games, logic puzzles and thinking blocks.", provider: "Math Playground", credit: "Math Playground (mathplayground.com)", category: "maths", url: "https://www.mathplayground.com/" },
+  { id: "gregtang", title: "Greg Tang Math", emoji: "🧠", description: "Clever number games like Kakooma that build mental maths.", provider: "Greg Tang Math", credit: "Greg Tang Math (gregtangmath.com)", category: "maths", url: "https://gregtangmath.com/games" },
+  { id: "spaceplace", title: "NASA Space Place", emoji: "🚀", description: "Space games, crafts and easy science straight from NASA.", provider: "NASA", credit: "NASA Space Place (spaceplace.nasa.gov)", category: "science", url: "https://spaceplace.nasa.gov/" },
+  { id: "natgeokids", title: "Nat Geo Kids", emoji: "🐾", description: "Animals, science and our planet, packed with facts and quizzes.", provider: "National Geographic", credit: "National Geographic Kids (kids.nationalgeographic.com)", category: "science", url: "https://kids.nationalgeographic.com/" },
+  { id: "dkfindout-science", title: "DK Find Out: Science", emoji: "🔬", description: "Colourful, trustworthy science articles and quizzes.", provider: "DK", credit: "DK Find Out (dkfindout.com)", category: "science", url: "https://www.dkfindout.com/uk/science/" },
+  { id: "mystery-science", title: "Mystery Science", emoji: "❓", description: "Free mini science lessons that answer the big questions kids ask.", provider: "Mystery Science", credit: "Mystery Science (mysteryscience.com)", category: "science", url: "https://mysteryscience.com/" },
+  { id: "seterra", title: "Seterra Geography", emoji: "🗺️", description: "Map quizzes for countries, capitals, rivers and flags.", provider: "Seterra", credit: "Seterra / GeoGuessr (online.seterra.com)", category: "geography", url: "https://online.seterra.com/" },
+  { id: "world-geography-games", title: "World Geography Games", emoji: "🌐", description: "Fun map and flag games for every continent.", provider: "World Geography Games", credit: "World Geography Games (world-geography-games.com)", category: "geography", url: "https://world-geography-games.com/en/" },
+  { id: "dkfindout-history", title: "DK Find Out: History", emoji: "🏺", description: "Explore dinosaurs, Egypt, Romans, Vikings and more.", provider: "DK", credit: "DK Find Out (dkfindout.com)", category: "history", url: "https://www.dkfindout.com/uk/history/" },
+  { id: "hour-of-code", title: "Hour of Code", emoji: "⏱️", description: "Short, fun coding activities with favourite characters.", provider: "Code.org", credit: "Hour of Code (hourofcode.com)", category: "coding", url: "https://hourofcode.com/uk/learn" },
+  { id: "storyline-online", title: "Storyline Online", emoji: "📖", description: "Famous actors read lovely picture books aloud.", provider: "SAG-AFTRA Foundation", credit: "Storyline Online (storylineonline.net)", category: "reading", url: "https://storylineonline.net/" },
+  { id: "teach-monster", title: "Teach Your Monster to Read", emoji: "👾", description: "A free, award-winning phonics adventure game.", provider: "Usborne Foundation", credit: "Teach Your Monster (teachyourmonster.org)", category: "reading", url: "https://www.teachyourmonster.org/" },
+  { id: "autodraw", title: "AutoDraw", emoji: "🖌️", description: "Sketch roughly and watch AI tidy it into a neat drawing.", provider: "Google", credit: "AutoDraw — Google (autodraw.com)", category: "art", url: "https://www.autodraw.com/" },
+  { id: "tate-kids", title: "Tate Kids", emoji: "🎨", description: "Make art, play games and explore famous artworks.", provider: "Tate", credit: "Tate Kids (tate.org.uk/kids)", category: "art", url: "https://www.tate.org.uk/kids" },
 
   // ---- GEOGRAPHY (new tab) --------------------------------------------------
   { id: "natgeo-kids", title: "Nat Geo Kids", emoji: "🌐", description: "Countries, animals and amazing places around the world.", provider: "National Geographic Kids", credit: "National Geographic Kids (kids.nationalgeographic.com)", category: "geography", url: "https://kids.nationalgeographic.com/" },
