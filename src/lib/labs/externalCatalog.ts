@@ -68,6 +68,8 @@ const CC_CREDIT = "The Concord Consortium — free STEM interactives (concord.or
 const BLOCKLY_CREDIT = "Blockly Games — open-source coding games by Google (blockly.games)";
 const DUCKSTERS_CREDIT = "Ducksters Education Site (ducksters.com)";
 const CM4K_CREDIT = "Coolmath4Kids (coolmath4kids.com)";
+const MOLVIEW_CREDIT = "MolView — open-source chemistry visualisation by Herman Bergwerf (molview.org)";
+const FALSTAD_CREDIT = "CircuitJS — by Paul Falstad & Iain Sharp, free in the browser (falstad.com/circuit)";
 
 export const EXTERNAL_RESOURCES: ExternalResource[] = [
   // ---- MATHS: GeoGebra apps (in-page via official API) ----------------------
@@ -110,6 +112,11 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   { id: "climate-kids", title: "NASA Climate Kids", emoji: "🌎", description: "Games and activities about Earth and space.", provider: "NASA", credit: "NASA Climate Kids (climatekids.nasa.gov)", category: "science", url: "https://climatekids.nasa.gov/" },
   { id: "ducksters-science", title: "Ducksters Science", emoji: "🔭", description: "Easy-to-read science articles and quizzes.", provider: "Ducksters", credit: DUCKSTERS_CREDIT, category: "science", url: "https://www.ducksters.com/science/" },
   { id: "explorify", title: "Explorify", emoji: "🔎", description: "Think-like-a-scientist activities — Odd One Out, Zoom In, What If and big questions. Free sign-up.", provider: "Explorify", credit: "Explorify — Wellcome / PSTT / STEM Learning (explorify.uk)", category: "science", url: "https://explorify.uk/" },
+  { id: "molview", title: "Molecule Builder", emoji: "🧬", description: "Draw a molecule, then press a button to turn it into a spinning 3D model. You can search real chemicals too.", provider: "MolView", credit: MOLVIEW_CREDIT, category: "science", url: "https://molview.org/", embedUrl: "https://molview.org/" },
+  { id: "molview-water", title: "Water in 3D", emoji: "💧", description: "Spin a real water molecule (two hydrogen atoms and one oxygen) around in 3D.", provider: "MolView", credit: MOLVIEW_CREDIT, category: "science", url: "https://embed.molview.org/v1/?mode=balls&cid=962&bg=white", embedUrl: "https://embed.molview.org/v1/?mode=balls&cid=962&bg=white" },
+  { id: "molview-caffeine", title: "Caffeine in 3D", emoji: "☕", description: "See the molecule that makes coffee and tea wake you up, spinning in 3D.", provider: "MolView", credit: MOLVIEW_CREDIT, category: "science", url: "https://embed.molview.org/v1/?mode=balls&cid=2519&bg=white", embedUrl: "https://embed.molview.org/v1/?mode=balls&cid=2519&bg=white" },
+  { id: "molview-sugar", title: "Sugar in 3D", emoji: "🍬", description: "Spin a sugar molecule (sucrose) and see all the atoms that make it sweet.", provider: "MolView", credit: MOLVIEW_CREDIT, category: "science", url: "https://embed.molview.org/v1/?mode=balls&cid=5988&bg=white", embedUrl: "https://embed.molview.org/v1/?mode=balls&cid=5988&bg=white" },
+  { id: "falstad-circuit", title: "Circuit Lab", emoji: "🔌", description: "Build real electric circuits with batteries, switches, bulbs and wires, and watch the current flow. A proper electronics lab.", provider: "Falstad / Sharp", credit: FALSTAD_CREDIT, category: "science", url: "https://www.falstad.com/circuit/circuitjs.html", embedUrl: "https://www.falstad.com/circuit/circuitjs.html" },
 
   // ---- GEOGRAPHY (new tab) --------------------------------------------------
   { id: "natgeo-kids", title: "Nat Geo Kids", emoji: "🌐", description: "Countries, animals and amazing places around the world.", provider: "National Geographic Kids", credit: "National Geographic Kids (kids.nationalgeographic.com)", category: "geography", url: "https://kids.nationalgeographic.com/" },
