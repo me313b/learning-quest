@@ -88,6 +88,17 @@ function mlc(name: string, title: string, emoji: string, category: ExternalCateg
   return { id: `mlc-${name}`, title, emoji, description, provider: "Math Learning Center", credit: MLC_CREDIT, category, url: u, embedUrl: u };
 }
 
+const MW_CREDIT =
+  "Molecular Workbench by The Concord Consortium — open-source (BSD/MIT/Apache), built to be embedded (concord.org)";
+
+// Concord's Molecular Workbench "Lab" interactives embed via an iframe whose URL
+// carries the interactive path in the fragment. lab.concord.org serves https, so
+// these load inside the app. The paths below come from Concord's own index.
+function mw(id: string, path: string, title: string, emoji: string, description: string): ExternalResource {
+  const u = `https://lab.concord.org/embeddable.html#interactives/${path}.json`;
+  return { id: `mw-${id}`, title, emoji, description, provider: "Concord Consortium", credit: MW_CREDIT, category: "science", url: u, embedUrl: u };
+}
+
 export const EXTERNAL_RESOURCES: ExternalResource[] = [
   // ---- MATHS: GeoGebra apps (in-page via official API) ----------------------
   { id: "ggb-graphing", title: "Graphing Calculator", emoji: "📈", description: "Type an equation and watch it draw a graph.", provider: "GeoGebra", credit: GGB_CREDIT, category: "maths", url: "https://www.geogebra.org/graphing", engine: { type: "geogebra", app: "graphing" } },
@@ -166,6 +177,27 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   phet("build-an-atom", "Build an Atom", "⚛️", "science", "Add protons, neutrons and electrons to build any atom."),
   phet("states-of-matter-basics", "States of Matter", "🧊", "science", "Heat and cool things into solids, liquids and gases."),
   phet("ph-scale-basics", "pH Scale: Acids & Bases", "🧪", "science", "Test everyday liquids to see if they are acid or base."),
+
+  // ---- More PhET chemistry: reactions, gases & solutions, embedded ----------
+  phet("reactions-and-rates", "Reactions and Rates", "💥", "science", "Make molecules collide and watch a chemical reaction happen."),
+  phet("reactants-products-and-leftovers", "Reactants & Leftovers", "🥪", "science", "Combine ingredients into products and see what is left over."),
+  phet("balancing-chemical-equations", "Balancing Equations", "⚗️", "science", "Balance the atoms on both sides of a chemical reaction."),
+  phet("concentration", "Concentration: Dissolving", "🧫", "science", "Dissolve a solid in water and watch the colour get stronger."),
+  phet("gases-intro", "Gases Intro", "🎈", "science", "Pump gas into a box and watch the tiny particles bounce."),
+  phet("gas-properties", "Gas Properties", "🌡️", "science", "Squeeze and heat a gas to explore pressure and temperature."),
+  phet("molecule-shapes-basics", "Molecule Shapes", "🔺", "science", "Build molecules and see the 3D shapes they make."),
+
+  // ---- Concord Molecular Workbench: watch real atoms & molecules, embedded ---
+  mw("oil-and-water", "sam/intermolecular-attractions/3-1-oil-and-water", "Oil & Water: Dissolving", "🧪", "Find out why some things dissolve in water and others do not, by watching the molecules."),
+  mw("dye-diffusion", "sam/diffusion/1-dropping-dye-on-click", "Diffusion of a Drop", "💧", "Drop dye into water and watch the molecules spread out and mix all by themselves."),
+  mw("diffusion-temperature", "sam/diffusion/2-temperature", "Diffusion & Temperature", "🌡️", "See how heating the water makes the dye spread out faster."),
+  mw("gas-molecules", "sam/phase-change/2-two-types-of-gases", "Gas Particles", "💨", "Watch how the particles in a gas zoom around and fill all the space."),
+  mw("liquid-molecules", "sam/phase-change/3-liquids", "Liquid Particles", "🌊", "See how the particles in a liquid slide and tumble past each other."),
+  mw("solid-molecules", "sam/phase-change/4-solids", "Solid Particles", "🧊", "Look at how the particles in a solid lock together and only wobble."),
+  mw("phase-change", "sam/phase-change/6-phase-changes-caused-by-energy-input", "Phase Change", "♨️", "Add or take away energy and watch a substance change between solid, liquid and gas."),
+  mw("gas-pressure", "sam/gas-laws/2-what-is-pressure", "What is Pressure?", "🎈", "See how gas particles bumping the walls of a box make pressure."),
+  mw("volume-pressure", "sam/gas-laws/3-volume-pressure-relationship", "Volume & Pressure", "🗜️", "Squeeze a gas into a smaller space and watch the pressure rise."),
+  mw("attractions", "sam/intermolecular-attractions/1-introduction", "Molecule Attractions", "🧲", "Discover how all tiny particles gently pull on each other, a bit like magnets."),
 
   // ---- Math Learning Center: hands-on maths apps, embedded ------------------
   mlc("number-pieces", "Number Pieces", "🧱", "maths", "Place-value blocks for tens and ones, adding and regrouping."),
