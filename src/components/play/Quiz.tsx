@@ -150,6 +150,9 @@ export default function Quiz({
   onExit: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
+  // When the child gets a question wrong they must tick "I understand" before
+  // they can move on, so they actually read the correct answer.
+  const [understood, setUnderstood] = useState(false);
   const [subjIdx, setSubjIdx] = useState(0);
   const [count, setCount] = useState(0);
   const [celebrate, setCelebrate] = useState(false);
@@ -241,52 +244,28 @@ export default function Quiz({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Read the question aloud automatically: French questions are always read in
-  // French, and longer English questions (more than 10 words) are read too, so
-  // the child never has to press the speaker. Open writing questions also get a
-  // "no rush" message and a friendly fact every minute while they think.
+  // Read the question aloud only when it actually helps: French phrases are
+  // always read in French, and longer English questions are read so a young
+  // child can follow them. Short English questions stay silent — the child can
+  // read them, and the speaker button is always there if they want it aloud.
   useEffect(() => {
     if (phase !== "question" || !question) return;
     const isFrench = language === "fr" || currentSubject === "french";
-    const text = question.displayText || question.prompt;
-    const open = isOpenWriting(question);
-    let alive = true;
+    const text = (question.displayText || question.prompt || "").trim();
+    const frAudio = (question.audioText || "").trim();
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const isLong = words > 12;
 
-    (async () => {
-      const frAudio = (question.audioText || "").trim();
-      if (frAudio) {
-        // Always speak the exact French (or listening) phrase, in French.
-        await speakSmart(frAudio, question.audioLanguage || "fr-FR");
-      } else if (isFrench) {
-        // No proper French audio supplied: stay silent rather than read an
-        // English instruction in a French accent, which would teach the wrong
-        // sound.
-      } else {
-        // Read the question aloud so a young child can follow it, however short.
-        await speakSmart(text, "en-GB");
-      }
-      if (alive && open && question.type !== "creative") {
-        await speakSmart(
-          "Don't worry about the time here. Take as long as you like to write your whole sentence.",
-          "en-GB",
-        );
-      }
-    })();
-
-    // While the child works on an untimed writing question, share a fact each
-    // minute so it feels like a teacher is with them.
-    let factTimer: ReturnType<typeof setInterval> | null = null;
-    if (open) {
-      factTimer = setInterval(() => {
-        if (!alive) return;
-        speakSmart(`Here's a fun one. ${randomFact()}`, "en-GB");
-      }, 60000);
+    if (frAudio) {
+      // The exact French (or listening) phrase, spoken in French.
+      speakSmart(frAudio, question.audioLanguage || "fr-FR");
+    } else if (isFrench) {
+      // No proper French audio supplied: stay silent rather than read an English
+      // instruction in a French accent, which would teach the wrong sound.
+    } else if (isLong) {
+      // Only long English questions are read aloud automatically.
+      speakSmart(text, "en-GB");
     }
-
-    return () => {
-      alive = false;
-      if (factTimer) clearInterval(factTimer);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, phase]);
 
@@ -330,6 +309,7 @@ export default function Quiz({
     setChoice("");
     setFile(null);
     setRecordHint("");
+    setUnderstood(false);
     answerRef.current = "";
     choiceRef.current = "";
     fileRef.current = null;
@@ -642,9 +622,20 @@ export default function Quiz({
       chime("hint");
       speakSmart(kidRef.current.funMode ? "Yes! You got there in the end. Great sticking power!" : "Well done for getting there!", "en-GB");
     } else if (opts.reveal) {
+      // The child got it wrong: read the answer and explanation aloud so they
+      // take it in rather than skipping past. They must also tick "I understand"
+      // before they can move on.
       const oops = kidRef.current.funMode ? FUNNY_OOPS : PLAIN_OOPS;
-      speakSmart(oops[Math.floor(Math.random() * oops.length)], "en-GB");
+      const lead = oops[Math.floor(Math.random() * oops.length)];
+      const explain = (g.solution || "").trim();
+      const sentence = explain
+        ? `${lead} Let's see why. ${explain}`
+        : g.correctAnswer
+          ? `${lead} The answer is ${g.correctAnswer}.`
+          : lead;
+      speakSmart(sentence, "en-GB");
     }
+    setUnderstood(false);
     setGrading(false);
     submittingRef.current = false;
     setPhaseR("feedback");
@@ -1200,9 +1191,74 @@ export default function Quiz({
             </p>
           )}
 
-          <PixelButton onClick={next} className="w-full py-4 text-sm">
-            {countRef.current >= total ? "Finish subject →" : "Next question →"}
-          </PixelButton>
+          {(() => {
+            const gotItRight =
+              result.verdict === "correct" || (result.verdict === "partial" && result.secondTry);
+
+            if (gotItRight) {
+              return (
+                <PixelButton onClick={next} className="w-full py-4 text-sm">
+                  {countRef.current >= total ? "Finish subject →" : "Next question →"}
+                </PixelButton>
+              );
+            }
+
+            // Got it wrong: make the child read/hear the correct answer and tick
+            // that they understand before they're allowed to move on, so they
+            // can't just skip past their mistake.
+            return (
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    const isFr = currentSubject === "french";
+                    const explain = (result.solution || "").trim();
+                    const text = isFr
+                      ? explain || `The answer is ${result.correctAnswer}.`
+                      : `The answer is ${result.correctAnswer}.${explain ? " " + explain : ""}`;
+                    speakSmart(text, "en-GB");
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-diamond/50 bg-diamond/10 px-3 py-1.5 text-sm text-paper/85"
+                >
+                  🔊 Read the answer to me
+                </button>
+
+                <button
+                  onClick={() => {
+                    setUnderstood((v) => !v);
+                    chime("hint");
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl border-4 px-4 py-3 text-left transition-colors ${
+                    understood ? "border-emerald bg-emerald/20" : "border-gold/50 bg-gold/10"
+                  }`}
+                >
+                  <span
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 font-pixel text-xs ${
+                      understood ? "border-emerald bg-emerald text-white" : "border-paper/40 text-transparent"
+                    }`}
+                  >
+                    ✓
+                  </span>
+                  <span className="text-sm text-paper/90">
+                    {understood
+                      ? "Great — you've got it! You can carry on now."
+                      : "I've read the answer and I understand where I went wrong"}
+                  </span>
+                </button>
+
+                <PixelButton
+                  onClick={next}
+                  disabled={!understood}
+                  className={`w-full py-4 text-sm ${understood ? "" : "cursor-not-allowed opacity-40"}`}
+                >
+                  {understood
+                    ? countRef.current >= total
+                      ? "Finish subject →"
+                      : "Next question →"
+                    : "Tick the box to carry on"}
+                </PixelButton>
+              </div>
+            );
+          })()}
         </div>
       )}
 
