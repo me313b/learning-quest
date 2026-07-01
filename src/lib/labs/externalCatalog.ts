@@ -159,6 +159,38 @@ export const EXTERNAL_RESOURCES: ExternalResource[] = [
   phet("plinko-probability", "Plinko Probability", "🎰", "maths", "Drop balls down a pin board and watch chance make a pattern."),
   phet("vector-addition", "Vector Addition", "➡️", "maths", "Add arrows together to learn about vectors."),
 
+  // ---- PhET: more of the best maths & algebra, embedded --------------------
+  phet("area-model-introduction", "Area Model: Intro", "🟫", "maths", "Build rectangles from parts to see multiplication and area."),
+  phet("fractions-intro", "Fractions: Intro", "🍰", "maths", "Make fractions with bars, circles and number lines."),
+  phet("fractions-equality", "Equivalent Fractions", "⚖️", "maths", "Find different fractions that are worth exactly the same."),
+  phet("make-a-ten", "Make a Ten", "🔟", "maths", "Add cleverly by making friendly tens."),
+  phet("number-play", "Number Play", "🔢", "maths", "Count, build and compare numbers up to twenty."),
+  phet("number-compare", "Number Compare", "🔼", "maths", "Which group has more? Compare two numbers side by side."),
+  phet("graphing-slope-intercept", "Graphing: y = mx + b", "📈", "maths", "Slide a straight line and read off its equation."),
+  phet("graphing-quadratics", "Graphing Quadratics", "🛝", "maths", "Bend a parabola and explore how its equation changes."),
+  phet("unit-rates", "Unit Rates Shopping", "🛒", "maths", "Shop for the best value and work out unit prices."),
+  phet("proportion-playground", "Proportion Playground", "🎨", "maths", "Mix paints and juice to explore ratios and proportion."),
+  phet("trig-tour", "Trig Tour", "🌀", "maths", "Travel around a circle to discover sine and cosine."),
+  phet("curve-fitting", "Curve Fitting", "✏️", "maths", "Drop points and fit a curve through them."),
+  phet("calculus-grapher", "Calculus Grapher", "📉", "maths", "Draw a function and watch its slope graph appear."),
+  phet("mean-share-and-balance", "Mean: Share & Balance", "🍬", "maths", "Share out sweets evenly to understand the average."),
+
+  // ---- Real Python in the browser: turtle graphics = maths art with code ----
+  { id: "trinket-turtle", title: "Python Turtle", emoji: "🐢", description: "Write real Python code and watch a turtle draw shapes, spirals and patterns. Press Run, then change the numbers and run it again.", provider: "Trinket", credit: "Python turtle on Trinket — example by the Raspberry Pi Foundation (trinket.io)", category: "maths", url: "https://trinket.io/embed/python/b89b6f5457", embedUrl: "https://trinket.io/embed/python/b89b6f5457" },
+  { id: "sagecell", title: "Sage Maths Cell", emoji: "🧮", description: "A real Python and Sage maths engine. Plot graphs, factor numbers, solve equations and explore algebra and calculus — type maths and press Run.", provider: "SageMath", credit: "SageMathCell — open-source SageMath, built to be embedded (sagecell.sagemath.org)", category: "maths", url: "https://sagecell.sagemath.org/", embedUrl: "/labs/sagecell.html" },
+
+  // ---- More of the best maths on the web (these open in a new tab) ----------
+  { id: "maths-is-fun", title: "Maths Is Fun", emoji: "😀", description: "Clear explanations, puzzles, games and tools for every maths topic.", provider: "Maths Is Fun", credit: "Maths Is Fun (mathsisfun.com)", category: "maths", url: "https://www.mathsisfun.com/" },
+  { id: "transum", title: "Transum Maths", emoji: "🧮", description: "Daily maths starters, puzzles, games and challenges.", provider: "Transum", credit: "Transum (transum.org)", category: "maths", url: "https://www.transum.org/" },
+  { id: "solveme-mobiles", title: "SolveMe Mobiles", emoji: "🎐", description: "Hanging-mobile balance puzzles that quietly teach algebra.", provider: "SolveMe Puzzles", credit: "SolveMe Puzzles — EDC (solveme.edc.org)", category: "maths", url: "https://solveme.edc.org/mobiles/" },
+  { id: "wodb", title: "Which One Doesn't Belong?", emoji: "🤔", description: "Look at four things and argue which is the odd one out — every answer can be right.", provider: "WODB", credit: "Which One Doesn't Belong? (wodb.ca)", category: "maths", url: "https://wodb.ca/" },
+  { id: "estimation180", title: "Estimation 180", emoji: "📷", description: "Sharpen number sense with a new estimation challenge each day.", provider: "Estimation 180", credit: "Estimation 180 — Andrew Stadel (estimation180.com)", category: "maths", url: "https://estimation180.com/" },
+  { id: "open-middle", title: "Open Middle", emoji: "🎯", description: "Challenging problems with one answer but many ways to reach it.", provider: "Open Middle", credit: "Open Middle (openmiddle.com)", category: "maths", url: "https://www.openmiddle.com/" },
+  { id: "coolmath-games", title: "Coolmath Games", emoji: "🧊", description: "Logic, number and strategy games that are genuinely fun.", provider: "Coolmath Games", credit: "Coolmath Games (coolmathgames.com)", category: "maths", url: "https://www.coolmathgames.com/" },
+  { id: "mathpickle", title: "Math Pickle", emoji: "🥒", description: "Hard, playful maths puzzles sorted by school year.", provider: "Math Pickle", credit: "Math Pickle (mathpickle.com)", category: "maths", url: "https://mathpickle.com/" },
+  { id: "trinket-python", title: "Python Playground", emoji: "🐍", description: "A full Python editor in the browser — write code and run it instantly, with no setup.", provider: "Trinket", credit: "Trinket — run Python in your browser (trinket.io)", category: "coding", url: "https://trinket.io/python" },
+  { id: "hour-of-python", title: "Hour of Python", emoji: "⏱️", description: "Gentle, interactive lessons that teach Python from scratch.", provider: "Trinket", credit: "Hour of Python — Trinket (hourofpython.com)", category: "coding", url: "https://hourofpython.com/" },
+
   // ---- PhET: the best of physics, chemistry, space & biology, embedded ------
   phet("forces-and-motion-basics", "Forces and Motion", "🛷", "science", "Push, pull and play tug-of-war to learn about forces."),
   phet("balancing-act", "Balancing Act", "🤸", "science", "Balance a seesaw with different weights and distances."),
